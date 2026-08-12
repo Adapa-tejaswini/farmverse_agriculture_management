@@ -31,14 +31,14 @@ The first milestone focuses on establishing the basic structure of the FarmVerse
 
 # 🛠️ Technology Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React.js |
-| Backend | Node.js |
-| Database | PostgreSQL |
-| Frontend Build Tool | Vite |
-| API Communication | REST API |
-| Version Control | Git & GitHub |
+| Layer               | Technology   |
+| ------------------- | ------------ |
+| Frontend            | React.js     |
+| Backend             | Node.js      |
+| Database            | PostgreSQL   |
+| Frontend Build Tool | Vite         |
+| API Communication   | REST API     |
+| Version Control     | Git & GitHub |
 
 ---
 
@@ -98,15 +98,15 @@ The database will store information such as:
 
 ---
 
-# 👥 Team Members
+# 👥 Team Members & Responsibilities
 
-| S.No | Team Member |
-|---:|---|
-| 1 | Adapa Tejaswini |
-| 2 | Charitha |
-| 3 | Asima |
-| 4 | Ashuthosh Mishra |
-| 5 | Anshul |
+| S.No | Team Member      | Module / Responsibility |
+| ---: | ---------------- | ----------------------- |
+| 1 | Adapa Tejaswini  | Login & Registration, Farmer Profile – Frontend |
+| 2 | Charitha         | Login & Registration – Backend |
+| 3 | Asima            | Crop Management & Farm Management – Frontend |
+| 4 | Ashuthosh Mishra | Crop Management & Farm Management – Backend |
+| 5 | Anshul           | PostgreSQL Database Setup |
 
 ---
 
