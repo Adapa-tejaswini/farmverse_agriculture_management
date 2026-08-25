@@ -1,16 +1,138 @@
-# React + Vite
+# FarmVerse – Agriculture Management Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 🌱 Project Overview
 
-Currently, two official plugins are available:
+**FarmVerse** is an agriculture management platform designed to help farmers manage their farming activities efficiently. The platform provides a centralized system for managing farm information, crop details, farmer profiles, and other agriculture-related activities.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The project is developed as a team-based application using a modern web development stack.
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+# 🚀 Milestone 1
 
-## Expanding the ESLint configuration
+## Milestone 1 – Project Foundation & Frontend Development
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The first milestone focuses on establishing the basic structure of the FarmVerse application and developing the frontend interface.
+
+### Objectives
+
+- Set up the project structure.
+- Develop the frontend user interface.
+- Implement navigation between application pages.
+- Create user registration and login interfaces.
+- Develop farmer profile and dashboard pages.
+- Create crop and farm management interfaces.
+- Develop the prediction interface.
+- Establish communication structure between frontend and backend.
+- Set up the PostgreSQL database environment.
+- Prepare the application for further backend and database integration.
+
+---
+
+# 🛠️ Technology Stack
+
+| Layer               | Technology   |
+| ------------------- | ------------ |
+| Frontend            | React.js     |
+| Backend             | Node.js      |
+| Database            | PostgreSQL   |
+| Frontend Build Tool | Vite         |
+| API Communication   | REST API     |
+| Version Control     | Git & GitHub |
+
+---
+
+# 🎨 Frontend
+
+The frontend is developed using **React.js** with **Vite**.
+
+### Frontend Features
+
+- Home Page
+- Navigation Bar
+- User Registration
+- User Login
+- Farmer Dashboard
+- Farmer Profile
+- User Profile
+- Farm Management
+- Crop Management
+- Prediction Interface
+
+### Frontend Technologies
+
+- React.js
+- JavaScript
+- HTML
+- CSS
+- Vite
+
+---
+
+# ⚙️ Backend
+
+The backend is developed using **Node.js**.
+
+It will handle:
+
+- API requests
+- User authentication
+- User and farmer data
+- Farm management operations
+- Crop management operations
+- Communication with the PostgreSQL database
+
+---
+
+# 🗄️ Database
+
+The project uses **PostgreSQL** as the database.
+
+The database will store information such as:
+
+- User details
+- Farmer profiles
+- Farm information
+- Crop information
+- Prediction-related data
+
+---
+
+# 👥 Team Members & Responsibilities
+
+| S.No | Team Member      | Module / Responsibility |
+| ---: | ---------------- | ----------------------- |
+| 1 | Adapa Tejaswini  | Login & Registration, Farmer Profile – Frontend |
+| 2 | Charitha         | Login & Registration – Backend |
+| 3 | Asima            | Crop Management & Farm Management – Frontend |
+| 4 | Ashuthosh Mishra | Crop Management & Farm Management – Backend |
+| 5 | Anshul           | PostgreSQL Database Setup |
+
+---
+
+# 📂 Project Structure
+
+```text
+FarmVerse/
+│
+├── src/
+│   ├── App.jsx
+│   ├── Home.jsx
+│   ├── Login.jsx
+│   ├── Register.jsx
+│   ├── FarmerDashboard.jsx
+│   ├── FarmerProfile.jsx
+│   ├── FarmManagement.jsx
+│   ├── CropManagement.jsx
+│   ├── Prediction.jsx
+│   └── ...
+│
+├── public/
+│
+├── server/
+│   └── Backend files
+│
+├── package.json
+├── package-lock.json
+├── vite.config.js
+└── README.md
