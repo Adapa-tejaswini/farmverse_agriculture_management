@@ -11,13 +11,6 @@ const UserProfile = ({ user, onLogout, onUpdateUser }) => {
       address,
     };
 
-    const accounts = JSON.parse(localStorage.getItem("farmverse_accounts") || "[]");
-
-    const updatedAccounts = accounts.map((account) =>
-      account.id === user.id ? { ...account, address } : account
-    );
-
-    localStorage.setItem("farmverse_accounts", JSON.stringify(updatedAccounts));
     onUpdateUser(updatedUser);
 
     setEditing(false);
@@ -57,7 +50,13 @@ const UserProfile = ({ user, onLogout, onUpdateUser }) => {
               <button style={styles.saveBtn} onClick={saveAddress}>
                 Save
               </button>
-              <button style={styles.cancelBtn} onClick={() => setEditing(false)}>
+              <button
+                style={styles.cancelBtn}
+                onClick={() => {
+                  setEditing(false);
+                  setAddress(user?.address || "");
+                }}
+              >
                 Cancel
               </button>
             </div>
@@ -109,15 +108,27 @@ const styles = {
     padding: "40px",
     borderRadius: "4px",
   },
-  header: { display: "flex", justifyContent: "space-between", gap: "18px" },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "18px",
+  },
   eyebrow: {
     color: "#c9a227",
     fontSize: "0.72rem",
     letterSpacing: "0.14em",
     marginBottom: "12px",
   },
-  name: { color: "#f3ede0", fontSize: "1.6rem", fontWeight: 500 },
-  contact: { color: "#a8a094", fontSize: "0.88rem", marginTop: "5px" },
+  name: {
+    color: "#f3ede0",
+    fontSize: "1.6rem",
+    fontWeight: 500,
+  },
+  contact: {
+    color: "#a8a094",
+    fontSize: "0.88rem",
+    marginTop: "5px",
+  },
   logoutBtn: {
     padding: "9px 14px",
     background: "transparent",
@@ -127,9 +138,22 @@ const styles = {
     cursor: "pointer",
     height: "fit-content",
   },
-  sectionHeader: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  sectionTitle: { color: "#f3ede0", fontSize: "1.05rem", fontWeight: 500 },
-  placeholder: { color: "#a8a094", fontSize: "0.9rem", lineHeight: 1.6, marginTop: "11px" },
+  sectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  sectionTitle: {
+    color: "#f3ede0",
+    fontSize: "1.05rem",
+    fontWeight: 500,
+  },
+  placeholder: {
+    color: "#a8a094",
+    fontSize: "0.9rem",
+    lineHeight: 1.6,
+    marginTop: "11px",
+  },
   editBtn: {
     background: "transparent",
     color: "#e3bc3f",
@@ -138,7 +162,10 @@ const styles = {
     padding: "7px 12px",
     cursor: "pointer",
   },
-  actions: { display: "flex", gap: "8px" },
+  actions: {
+    display: "flex",
+    gap: "8px",
+  },
   saveBtn: {
     background: "#c9a227",
     color: "#0b0a08",
@@ -168,7 +195,11 @@ const styles = {
     outline: "none",
     fontFamily: "inherit",
   },
-  message: { color: "#e3bc3f", fontSize: "0.84rem", marginTop: "10px" },
+  message: {
+    color: "#e3bc3f",
+    fontSize: "0.84rem",
+    marginTop: "10px",
+  },
 };
 
 export default UserProfile;

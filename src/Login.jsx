@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { loginUser } from "./api.js";
 
 const LOGIN_IMAGE =
   "https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=1600&q=85";
@@ -9,10 +10,13 @@ const Login = ({ onLogin }) => {
 
   const [role, setRole] = useState("farmer");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     identifier: "",
     password: "",
   });
+
   const [error, setError] = useState("");
 
   const handleChange = (event) => {
@@ -22,50 +26,31 @@ const Login = ({ onLogin }) => {
     });
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
 
-    if (!formData.identifier || !formData.password) {
+    if (!formData.identifier.trim() || !formData.password) {
       setError("Enter your email or phone number and password.");
       return;
     }
 
-    // Existing LocalStorage login logic — unchanged
-    const savedUsers = JSON.parse(
-      localStorage.getItem("farmverse_accounts") || "[]"
-    );
+    setLoading(true);
 
-    const existingUser = savedUsers.find(
-      (account) =>
-        (account.email === formData.identifier ||
-          account.phone === formData.identifier) &&
-        account.password === formData.password &&
-        account.role === role
-    );
+    try {
+      const data = await loginUser({
+        identifier: formData.identifier.trim(),
+        password: formData.password,
+        role,
+      });
 
-    if (!existingUser) {
-      setError(
-        "Account not found. Check your details or create a Farmverse account first."
-      );
-      return;
+      onLogin(data.user);
+      navigate(data.user.role === "farmer" ? "/dashboard" : "/profile");
+    } catch (err) {
+      setError(err.message || "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    const loggedInUser = {
-      id: existingUser.id,
-      name: existingUser.name,
-      email: existingUser.email,
-      phone: existingUser.phone,
-      role: existingUser.role,
-      farmName: existingUser.farmName || "",
-      location: existingUser.location || "",
-      farmSize: existingUser.farmSize || "",
-      farmingType: existingUser.farmingType || "",
-      address: existingUser.address || "",
-    };
-
-    onLogin(loggedInUser);
-    navigate(role === "farmer" ? "/dashboard" : "/profile");
   };
 
   return (
@@ -108,7 +93,9 @@ const Login = ({ onLogin }) => {
           </p>
 
           <h2 style={styles.title}>
-            {role === "farmer" ? "Sign in to your farm." : "Sign in to Farmverse."}
+            {role === "farmer"
+              ? "Sign in to your farm."
+              : "Sign in to Farmverse."}
           </h2>
 
           <p style={styles.description}>
@@ -122,6 +109,7 @@ const Login = ({ onLogin }) => {
               type="button"
               onClick={() => setRole("farmer")}
               style={role === "farmer" ? styles.roleActive : styles.roleButton}
+              disabled={loading}
             >
               <span style={styles.roleSymbol}>♧</span>
               <span>
@@ -134,6 +122,7 @@ const Login = ({ onLogin }) => {
               type="button"
               onClick={() => setRole("user")}
               style={role === "user" ? styles.roleActive : styles.roleButton}
+              disabled={loading}
             >
               <span style={styles.roleSymbol}>◉</span>
               <span>
@@ -156,6 +145,7 @@ const Login = ({ onLogin }) => {
                 onChange={handleChange}
                 style={styles.input}
                 autoComplete="username"
+                disabled={loading}
               />
             </div>
 
@@ -166,6 +156,7 @@ const Login = ({ onLogin }) => {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   style={styles.showButton}
+                  disabled={loading}
                 >
                   {showPassword ? "Hide" : "Show"}
                 </button>
@@ -179,11 +170,20 @@ const Login = ({ onLogin }) => {
                 onChange={handleChange}
                 style={styles.input}
                 autoComplete="current-password"
+                disabled={loading}
               />
             </div>
 
-            <button type="submit" style={styles.submitButton}>
-              Sign in <span>→</span>
+            <button
+              type="submit"
+              style={{
+                ...styles.submitButton,
+                opacity: loading ? 0.7 : 1,
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Sign in →"}
             </button>
           </form>
 

@@ -35,8 +35,11 @@ const CropManagement = ({ user }) => {
   const [editingId, setEditingId] = useState(null);
   const [showSoilDetails, setShowSoilDetails] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("success");
 
   const loadData = () => {
+    if (!user?.id) return;
+
     setFarms(getFarms(user.id));
     setCrops(getCrops(user.id));
   };
@@ -61,26 +64,35 @@ const CropManagement = ({ user }) => {
   const handleSubmit = (event) => {
     event.preventDefault();
     setMessage("");
+    setMessageType("success");
 
-    if (!formData.farmId || !formData.cropName || !formData.plantingDate) {
+    if (!formData.farmId || !formData.cropName.trim() || !formData.plantingDate) {
+      setMessageType("error");
       setMessage("Select a farm, enter crop name, and add planting date.");
       return;
     }
 
-    if (editingId) {
-      updateCrop(user.id, editingId, formData);
-      setMessage("Crop record updated successfully.");
-    } else {
-      addCrop(user.id, formData);
-      setMessage("Crop added successfully.");
-    }
+    try {
+      if (editingId) {
+        updateCrop(user.id, editingId, formData);
+        setMessage("Crop record updated successfully.");
+      } else {
+        addCrop(user.id, formData);
+        setMessage("Crop added successfully.");
+      }
 
-    resetForm();
-    loadData();
+      setMessageType("success");
+      resetForm();
+      loadData();
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err.message || "Could not save crop record.");
+    }
   };
 
   const handleEdit = (crop) => {
     setEditingId(crop.id);
+    setMessage("");
 
     setFormData({
       farmId: crop.farmId || "",
@@ -111,6 +123,7 @@ const CropManagement = ({ user }) => {
 
     deleteCrop(user.id, cropId);
     loadData();
+    setMessageType("success");
     setMessage("Crop record deleted.");
   };
 
@@ -118,7 +131,9 @@ const CropManagement = ({ user }) => {
     return (
       <main style={styles.page}>
         <div style={styles.container}>
-          <p className="mono" style={styles.eyebrow}>CROP MANAGEMENT</p>
+          <p className="mono" style={styles.eyebrow}>
+            CROP MANAGEMENT
+          </p>
           <h1 style={styles.title}>Add a farm before adding crops.</h1>
 
           <section style={styles.notice}>
@@ -145,7 +160,9 @@ const CropManagement = ({ user }) => {
           <div style={styles.heroOverlay} />
 
           <div style={styles.heroContent}>
-            <p className="mono" style={styles.eyebrow}>CROP MANAGEMENT</p>
+            <p className="mono" style={styles.eyebrow}>
+              CROP MANAGEMENT
+            </p>
             <h1 style={styles.title}>Follow every crop season.</h1>
             <p style={styles.subtitle}>
               Record planting, crop stage, harvest planning, and expected yield.
@@ -179,12 +196,27 @@ const CropManagement = ({ user }) => {
               <span style={styles.formIcon}>☘</span>
             </div>
 
-            {message && <p style={styles.message}>{message}</p>}
+            {message && (
+              <p
+                style={
+                  messageType === "error"
+                    ? styles.errorMessage
+                    : styles.message
+                }
+              >
+                {message}
+              </p>
+            )}
 
             <form onSubmit={handleSubmit}>
               <div style={styles.field}>
                 <label style={styles.label}>Farm *</label>
-                <select name="farmId" value={formData.farmId} onChange={handleChange} style={styles.input}>
+                <select
+                  name="farmId"
+                  value={formData.farmId}
+                  onChange={handleChange}
+                  style={styles.input}
+                >
                   <option value="">Select a farm</option>
                   {farms.map((farm) => (
                     <option key={farm.id} value={farm.id}>
@@ -195,14 +227,31 @@ const CropManagement = ({ user }) => {
               </div>
 
               <div style={styles.twoColumn}>
-                <Field label="Crop name *" name="cropName" value={formData.cropName} onChange={handleChange} placeholder="Example: Tomato" />
-                <Field label="Variety" name="variety" value={formData.variety} onChange={handleChange} placeholder="Example: Hybrid" />
+                <Field
+                  label="Crop name *"
+                  name="cropName"
+                  value={formData.cropName}
+                  onChange={handleChange}
+                  placeholder="Example: Tomato"
+                />
+                <Field
+                  label="Variety"
+                  name="variety"
+                  value={formData.variety}
+                  onChange={handleChange}
+                  placeholder="Example: Hybrid"
+                />
               </div>
 
               <div style={styles.twoColumn}>
                 <div style={styles.field}>
                   <label style={styles.label}>Season</label>
-                  <select name="season" value={formData.season} onChange={handleChange} style={styles.input}>
+                  <select
+                    name="season"
+                    value={formData.season}
+                    onChange={handleChange}
+                    style={styles.input}
+                  >
                     <option value="">Select season</option>
                     <option value="Kharif">Kharif / Monsoon</option>
                     <option value="Rabi">Rabi / Winter</option>
@@ -210,18 +259,42 @@ const CropManagement = ({ user }) => {
                   </select>
                 </div>
 
-                <Field label="Field area (acres)" type="number" name="fieldArea" value={formData.fieldArea} onChange={handleChange} placeholder="Example: 2.5" />
+                <Field
+                  label="Field area (acres)"
+                  type="number"
+                  name="fieldArea"
+                  value={formData.fieldArea}
+                  onChange={handleChange}
+                  placeholder="Example: 2.5"
+                />
               </div>
 
               <div style={styles.twoColumn}>
-                <Field label="Planting date *" type="date" name="plantingDate" value={formData.plantingDate} onChange={handleChange} />
-                <Field label="Expected harvest" type="date" name="expectedHarvestDate" value={formData.expectedHarvestDate} onChange={handleChange} />
+                <Field
+                  label="Planting date *"
+                  type="date"
+                  name="plantingDate"
+                  value={formData.plantingDate}
+                  onChange={handleChange}
+                />
+                <Field
+                  label="Expected harvest"
+                  type="date"
+                  name="expectedHarvestDate"
+                  value={formData.expectedHarvestDate}
+                  onChange={handleChange}
+                />
               </div>
 
               <div style={styles.twoColumn}>
                 <div style={styles.field}>
                   <label style={styles.label}>Growth stage</label>
-                  <select name="growthStage" value={formData.growthStage} onChange={handleChange} style={styles.input}>
+                  <select
+                    name="growthStage"
+                    value={formData.growthStage}
+                    onChange={handleChange}
+                    style={styles.input}
+                  >
                     <option value="Seedling">Seedling</option>
                     <option value="Vegetative">Vegetative</option>
                     <option value="Flowering">Flowering</option>
@@ -232,7 +305,12 @@ const CropManagement = ({ user }) => {
 
                 <div style={styles.field}>
                   <label style={styles.label}>Crop status</label>
-                  <select name="cropStatus" value={formData.cropStatus} onChange={handleChange} style={styles.input}>
+                  <select
+                    name="cropStatus"
+                    value={formData.cropStatus}
+                    onChange={handleChange}
+                    style={styles.input}
+                  >
                     <option value="Planned">Planned</option>
                     <option value="Planted">Planted</option>
                     <option value="Growing">Growing</option>
@@ -242,7 +320,14 @@ const CropManagement = ({ user }) => {
                 </div>
               </div>
 
-              <Field label="Estimated yield (kg)" type="number" name="estimatedYield" value={formData.estimatedYield} onChange={handleChange} placeholder="Example: 1200" />
+              <Field
+                label="Estimated yield (kg)"
+                type="number"
+                name="estimatedYield"
+                value={formData.estimatedYield}
+                onChange={handleChange}
+                placeholder="Example: 1200"
+              />
 
               <section style={styles.soilSection}>
                 <button
@@ -265,10 +350,38 @@ const CropManagement = ({ user }) => {
                     </p>
 
                     <div style={styles.fourColumn}>
-                      <Field label="Soil pH" type="number" name="soilPh" value={formData.soilPh} onChange={handleChange} placeholder="6.5" />
-                      <Field label="Nitrogen (N)" type="number" name="nitrogen" value={formData.nitrogen} onChange={handleChange} placeholder="90" />
-                      <Field label="Phosphorus (P)" type="number" name="phosphorus" value={formData.phosphorus} onChange={handleChange} placeholder="42" />
-                      <Field label="Potassium (K)" type="number" name="potassium" value={formData.potassium} onChange={handleChange} placeholder="43" />
+                      <Field
+                        label="Soil pH"
+                        type="number"
+                        name="soilPh"
+                        value={formData.soilPh}
+                        onChange={handleChange}
+                        placeholder="6.5"
+                      />
+                      <Field
+                        label="Nitrogen (N)"
+                        type="number"
+                        name="nitrogen"
+                        value={formData.nitrogen}
+                        onChange={handleChange}
+                        placeholder="90"
+                      />
+                      <Field
+                        label="Phosphorus (P)"
+                        type="number"
+                        name="phosphorus"
+                        value={formData.phosphorus}
+                        onChange={handleChange}
+                        placeholder="42"
+                      />
+                      <Field
+                        label="Potassium (K)"
+                        type="number"
+                        name="potassium"
+                        value={formData.potassium}
+                        onChange={handleChange}
+                        placeholder="43"
+                      />
                     </div>
                   </div>
                 )}
@@ -280,7 +393,11 @@ const CropManagement = ({ user }) => {
                 </button>
 
                 {editingId && (
-                  <button type="button" style={styles.cancelBtn} onClick={resetForm}>
+                  <button
+                    type="button"
+                    style={styles.cancelBtn}
+                    onClick={resetForm}
+                  >
                     Cancel
                   </button>
                 )}
@@ -289,7 +406,9 @@ const CropManagement = ({ user }) => {
           </section>
 
           <section style={styles.listCard}>
-            <p className="mono" style={styles.cardEyebrow}>CROP RECORDS</p>
+            <p className="mono" style={styles.cardEyebrow}>
+              CROP RECORDS
+            </p>
             <h2 style={styles.sectionTitle}>
               {crops.length} {crops.length === 1 ? "crop" : "crops"} on record
             </h2>
@@ -303,7 +422,9 @@ const CropManagement = ({ user }) => {
             ) : (
               <div style={styles.cropList}>
                 {crops.map((crop) => {
-                  const farm = farms.find((item) => item.id === crop.farmId);
+                  const farm = farms.find(
+                    (item) => Number(item.id) === Number(crop.farmId)
+                  );
 
                   return (
                     <article key={crop.id} style={styles.cropCard}>
@@ -325,15 +446,31 @@ const CropManagement = ({ user }) => {
                       </div>
 
                       <div style={styles.cropDetails}>
-                        <span><strong>Season:</strong> {crop.season || "Not set"}</span>
-                        <span><strong>Stage:</strong> {crop.growthStage || "Not set"}</span>
-                        <span><strong>Area:</strong> {crop.fieldArea || "0"} acres</span>
-                        <span><strong>Yield:</strong> {crop.estimatedYield || "0"} kg</span>
-                        <span><strong>Planting:</strong> {crop.plantingDate}</span>
-                        <span><strong>Harvest:</strong> {crop.expectedHarvestDate || "Not set"}</span>
+                        <span>
+                          <strong>Season:</strong> {crop.season || "Not set"}
+                        </span>
+                        <span>
+                          <strong>Stage:</strong> {crop.growthStage || "Not set"}
+                        </span>
+                        <span>
+                          <strong>Area:</strong> {crop.fieldArea || "0"} acres
+                        </span>
+                        <span>
+                          <strong>Yield:</strong> {crop.estimatedYield || "0"} kg
+                        </span>
+                        <span>
+                          <strong>Planting:</strong> {crop.plantingDate}
+                        </span>
+                        <span>
+                          <strong>Harvest:</strong>{" "}
+                          {crop.expectedHarvestDate || "Not set"}
+                        </span>
                       </div>
 
-                      {(crop.soilPh || crop.nitrogen || crop.phosphorus || crop.potassium) && (
+                      {(crop.soilPh ||
+                        crop.nitrogen ||
+                        crop.phosphorus ||
+                        crop.potassium) && (
                         <div style={styles.npkBox}>
                           <span>N: {crop.nitrogen || "-"}</span>
                           <span>P: {crop.phosphorus || "-"}</span>
@@ -343,11 +480,17 @@ const CropManagement = ({ user }) => {
                       )}
 
                       <div style={styles.cardButtons}>
-                        <button style={styles.editBtn} onClick={() => handleEdit(crop)}>
+                        <button
+                          style={styles.editBtn}
+                          onClick={() => handleEdit(crop)}
+                        >
                           Edit
                         </button>
 
-                        <button style={styles.deleteBtn} onClick={() => handleDelete(crop.id)}>
+                        <button
+                          style={styles.deleteBtn}
+                          onClick={() => handleDelete(crop.id)}
+                        >
                           Delete
                         </button>
                       </div>
@@ -382,53 +525,235 @@ const Field = ({ label, name, type = "text", value, onChange, placeholder }) => 
 const styles = {
   page: { minHeight: "calc(100vh - 65px)", padding: "38px 20px 65px" },
   container: { maxWidth: "1200px", margin: "0 auto" },
-  hero: { minHeight: "250px", position: "relative", overflow: "hidden", borderRadius: "6px", border: "1px solid rgba(201,162,39,0.24)", display: "flex", alignItems: "center", marginBottom: "22px" },
-  heroImage: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" },
-  heroOverlay: { position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(11,10,8,0.95), rgba(11,10,8,0.72), rgba(11,10,8,0.27))" },
-  heroContent: { position: "relative", zIndex: 1, maxWidth: "650px", padding: "35px" },
-  eyebrow: { color: "#d9b538", fontSize: "0.69rem", letterSpacing: "0.14em", marginBottom: "10px" },
+  hero: {
+    minHeight: "250px",
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: "6px",
+    border: "1px solid rgba(201,162,39,0.24)",
+    display: "flex",
+    alignItems: "center",
+    marginBottom: "22px",
+  },
+  heroImage: {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  heroOverlay: {
+    position: "absolute",
+    inset: 0,
+    background:
+      "linear-gradient(90deg, rgba(11,10,8,0.95), rgba(11,10,8,0.72), rgba(11,10,8,0.27))",
+  },
+  heroContent: {
+    position: "relative",
+    zIndex: 1,
+    maxWidth: "650px",
+    padding: "35px",
+  },
+  eyebrow: {
+    color: "#d9b538",
+    fontSize: "0.69rem",
+    letterSpacing: "0.14em",
+    marginBottom: "10px",
+  },
   title: { color: "#f3ede0", fontSize: "2rem", fontWeight: 500, margin: 0 },
   subtitle: { color: "#c9c0b2", lineHeight: 1.6, margin: "10px 0 0" },
-  heroStats: { position: "absolute", zIndex: 2, right: "28px", bottom: "24px", display: "flex", gap: "10px" },
-  layout: { display: "grid", gridTemplateColumns: "minmax(330px, 1fr) minmax(390px, 1fr)", gap: "20px" },
-  formCard: { background: "#1a1712", border: "1px solid rgba(201,162,39,0.2)", borderRadius: "5px", padding: "29px" },
-  listCard: { background: "#1a1712", border: "1px solid rgba(201,162,39,0.2)", borderRadius: "5px", padding: "29px" },
+  heroStats: {
+    position: "absolute",
+    zIndex: 2,
+    right: "28px",
+    bottom: "24px",
+    display: "flex",
+    gap: "10px",
+    color: "#f3ede0",
+  },
+  layout: {
+    display: "grid",
+    gridTemplateColumns: "minmax(330px, 1fr) minmax(390px, 1fr)",
+    gap: "20px",
+  },
+  formCard: {
+    background: "#1a1712",
+    border: "1px solid rgba(201,162,39,0.2)",
+    borderRadius: "5px",
+    padding: "29px",
+  },
+  listCard: {
+    background: "#1a1712",
+    border: "1px solid rgba(201,162,39,0.2)",
+    borderRadius: "5px",
+    padding: "29px",
+  },
   headingRow: { display: "flex", justifyContent: "space-between", gap: "15px" },
-  cardEyebrow: { color: "#7c5432", fontSize: "0.67rem", letterSpacing: "0.1em", marginBottom: "7px" },
+  cardEyebrow: {
+    color: "#7c5432",
+    fontSize: "0.67rem",
+    letterSpacing: "0.1em",
+    marginBottom: "7px",
+  },
   sectionTitle: { color: "#f3ede0", fontSize: "1.18rem", fontWeight: 500, margin: 0 },
   formIcon: { color: "#c9a227", fontSize: "1.5rem" },
-  message: { color: "#e3bc3f", fontSize: "0.84rem", marginTop: "12px" },
+  message: {
+    color: "#e3bc3f",
+    fontSize: "0.84rem",
+    marginTop: "12px",
+    lineHeight: 1.5,
+  },
+  errorMessage: {
+    color: "#ffc1a6",
+    background: "rgba(224,122,79,0.08)",
+    border: "1px solid rgba(224,122,79,0.22)",
+    padding: "9px",
+    borderRadius: "3px",
+    fontSize: "0.84rem",
+    marginTop: "12px",
+    lineHeight: 1.5,
+  },
   field: { marginTop: "16px" },
   label: { display: "block", color: "#a8a094", fontSize: "0.78rem", marginBottom: "6px" },
-  input: { width: "100%", background: "#12110e", color: "#f3ede0", border: "1px solid rgba(243,237,224,0.15)", borderRadius: "3px", padding: "10px", outline: "none", fontFamily: "inherit" },
+  input: {
+    width: "100%",
+    background: "#12110e",
+    color: "#f3ede0",
+    border: "1px solid rgba(243,237,224,0.15)",
+    borderRadius: "3px",
+    padding: "10px",
+    outline: "none",
+    fontFamily: "inherit",
+  },
   twoColumn: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" },
   fourColumn: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "9px" },
-  soilSection: { marginTop: "23px", border: "1px solid rgba(201,162,39,0.18)", background: "rgba(201,162,39,0.04)" },
-  soilToggle: { width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", color: "#f3ede0", background: "transparent", border: "none", textAlign: "left", padding: "13px", cursor: "pointer" },
+  soilSection: {
+    marginTop: "23px",
+    border: "1px solid rgba(201,162,39,0.18)",
+    background: "rgba(201,162,39,0.04)",
+  },
+  soilToggle: {
+    width: "100%",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    color: "#f3ede0",
+    background: "transparent",
+    border: "none",
+    textAlign: "left",
+    padding: "13px",
+    cursor: "pointer",
+  },
   soilContent: { padding: "0 13px 14px" },
-  soilNote: { color: "#a8a094", fontSize: "0.74rem", lineHeight: 1.5, margin: 0, padding: "9px", background: "rgba(11,10,8,0.3)" },
+  soilNote: {
+    color: "#a8a094",
+    fontSize: "0.74rem",
+    lineHeight: 1.5,
+    margin: 0,
+    padding: "9px",
+    background: "rgba(11,10,8,0.3)",
+  },
   plus: { color: "#e3bc3f", fontSize: "1.3rem" },
   buttonRow: { display: "flex", gap: "10px", marginTop: "26px" },
-  primaryBtn: { display: "inline-block", background: "#c9a227", color: "#0b0a08", border: "none", textDecoration: "none", borderRadius: "3px", padding: "11px 17px", fontWeight: 700, cursor: "pointer" },
-  cancelBtn: { background: "transparent", border: "1px solid rgba(243,237,224,0.2)", color: "#a8a094", borderRadius: "3px", padding: "11px 17px", cursor: "pointer" },
-  notice: { maxWidth: "570px", background: "#1a1712", border: "1px solid rgba(201,162,39,0.2)", padding: "30px", marginTop: "28px", color: "#a8a094", lineHeight: 1.6 },
+  primaryBtn: {
+    display: "inline-block",
+    background: "#c9a227",
+    color: "#0b0a08",
+    border: "none",
+    textDecoration: "none",
+    borderRadius: "3px",
+    padding: "11px 17px",
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  cancelBtn: {
+    background: "transparent",
+    border: "1px solid rgba(243,237,224,0.2)",
+    color: "#a8a094",
+    borderRadius: "3px",
+    padding: "11px 17px",
+    cursor: "pointer",
+  },
+  notice: {
+    maxWidth: "570px",
+    background: "#1a1712",
+    border: "1px solid rgba(201,162,39,0.2)",
+    padding: "30px",
+    marginTop: "28px",
+    color: "#a8a094",
+    lineHeight: 1.6,
+  },
   noticeIcon: { color: "#c9a227", fontSize: "2rem" },
   noticeTitle: { color: "#f3ede0", fontWeight: 500 },
   empty: { color: "#a8a094", textAlign: "center", padding: "80px 15px", lineHeight: 1.6 },
   emptyIcon: { display: "block", color: "#7c5432", fontSize: "2.5rem", marginBottom: "10px" },
   cropList: { marginTop: "22px", display: "flex", flexDirection: "column", gap: "12px" },
-  cropCard: { background: "#151310", border: "1px solid rgba(243,237,224,0.1)", borderLeft: "3px solid rgba(201,162,39,0.6)", borderRadius: "4px", padding: "19px" },
+  cropCard: {
+    background: "#151310",
+    border: "1px solid rgba(243,237,224,0.1)",
+    borderLeft: "3px solid rgba(201,162,39,0.6)",
+    borderRadius: "4px",
+    padding: "19px",
+  },
   cropTop: { display: "flex", justifyContent: "space-between", gap: "13px" },
   cropNameRow: { display: "flex", alignItems: "center", gap: "10px" },
-  cropCircle: { width: "35px", height: "35px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(201,162,39,0.12)", color: "#e3bc3f", fontFamily: "'Fraunces', serif" },
+  cropCircle: {
+    width: "35px",
+    height: "35px",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(201,162,39,0.12)",
+    color: "#e3bc3f",
+    fontFamily: "'Fraunces', serif",
+  },
   cropName: { color: "#f3ede0", fontSize: "1.04rem", margin: 0 },
   cropFarm: { color: "#8e867a", fontSize: "0.76rem", margin: "4px 0 0" },
-  status: { color: "#e3bc3f", border: "1px solid rgba(201,162,39,0.35)", borderRadius: "14px", fontSize: "0.67rem", padding: "4px 8px", whiteSpace: "nowrap" },
-  cropDetails: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", color: "#a8a094", fontSize: "0.75rem", marginTop: "17px" },
-  npkBox: { display: "flex", flexWrap: "wrap", gap: "12px", color: "#cfc8b8", fontFamily: "'IBM Plex Mono', monospace", fontSize: "0.7rem", marginTop: "15px", padding: "9px", background: "rgba(201,162,39,0.06)" },
+  status: {
+    color: "#e3bc3f",
+    border: "1px solid rgba(201,162,39,0.35)",
+    borderRadius: "14px",
+    fontSize: "0.67rem",
+    padding: "4px 8px",
+    whiteSpace: "nowrap",
+  },
+  cropDetails: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, 1fr)",
+    gap: "8px",
+    color: "#a8a094",
+    fontSize: "0.75rem",
+    marginTop: "17px",
+  },
+  npkBox: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "12px",
+    color: "#cfc8b8",
+    fontFamily: "'IBM Plex Mono', monospace",
+    fontSize: "0.7rem",
+    marginTop: "15px",
+    padding: "9px",
+    background: "rgba(201,162,39,0.06)",
+  },
   cardButtons: { display: "flex", justifyContent: "flex-end", gap: "9px", marginTop: "17px" },
-  editBtn: { background: "transparent", color: "#e3bc3f", border: "1px solid rgba(201,162,39,0.4)", padding: "7px 11px", borderRadius: "2px", cursor: "pointer" },
-  deleteBtn: { background: "transparent", color: "#e07a4f", border: "1px solid rgba(224,122,79,0.4)", padding: "7px 11px", borderRadius: "2px", cursor: "pointer" },
+  editBtn: {
+    background: "transparent",
+    color: "#e3bc3f",
+    border: "1px solid rgba(201,162,39,0.4)",
+    padding: "7px 11px",
+    borderRadius: "2px",
+    cursor: "pointer",
+  },
+  deleteBtn: {
+    background: "transparent",
+    color: "#e07a4f",
+    border: "1px solid rgba(224,122,79,0.4)",
+    padding: "7px 11px",
+    borderRadius: "2px",
+    cursor: "pointer",
+  },
 };
 
 export default CropManagement;

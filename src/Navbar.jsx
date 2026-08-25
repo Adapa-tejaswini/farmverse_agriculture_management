@@ -26,16 +26,20 @@ const Navbar = ({ user, onLogout }) => {
           style={styles.menuBtn}
           className="menu-btn"
           onClick={() => setOpen(!open)}
-          aria-label="Toggle menu"
+          aria-label="Toggle navigation menu"
         >
           {open ? "✕" : "☰"}
         </button>
 
-        <nav className={`nav-links ${open ? "open" : ""}`} style={styles.links}>
+        <nav
+          className={`nav-links ${open ? "open" : ""}`}
+          style={styles.links}
+        >
           <Link to="/" style={styles.link} onClick={closeMenu}>
             Home
           </Link>
 
+          {/* Farmer-only navigation */}
           {user?.role === "farmer" && (
             <>
               <Link to="/dashboard" style={styles.link} onClick={closeMenu}>
@@ -49,16 +53,33 @@ const Navbar = ({ user, onLogout }) => {
               <Link to="/crop-management" style={styles.link} onClick={closeMenu}>
                 Crops
               </Link>
+
+              <Link to="/weather" style={styles.link} onClick={closeMenu}>
+                Weather
+              </Link>
+
+              <Link to="/reports" style={styles.link} onClick={closeMenu}>
+                Reports
+              </Link>
+
+              <Link to="/assistant" style={styles.aiLink} onClick={closeMenu}>
+                ✦ AI Assistant
+              </Link>
             </>
           )}
 
+          {/* Logged-in navigation */}
           {user ? (
             <>
               <Link to="/profile" style={styles.link} onClick={closeMenu}>
                 Profile
               </Link>
 
-              <button type="button" onClick={handleLogout} style={styles.logoutBtn}>
+              <button
+                type="button"
+                onClick={handleLogout}
+                style={styles.logoutBtn}
+              >
                 Sign out
               </button>
             </>
@@ -68,8 +89,12 @@ const Navbar = ({ user, onLogout }) => {
                 Sign in
               </Link>
 
-              <Link to="/register" style={styles.registerBtn} onClick={closeMenu}>
-                Join
+              <Link
+                to="/register"
+                style={styles.registerBtn}
+                onClick={closeMenu}
+              >
+                Join Farmverse
               </Link>
             </>
           )}
@@ -89,14 +114,17 @@ const styles = {
     background: "rgba(11,10,8,0.95)",
     backdropFilter: "blur(8px)",
   },
+
   bar: {
-    maxWidth: "1280px",
+    maxWidth: "1380px",
     margin: "0 auto",
-    padding: "18px 48px",
+    padding: "18px 38px",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: "20px",
   },
+
   brand: {
     display: "flex",
     alignItems: "center",
@@ -106,38 +134,58 @@ const styles = {
     fontSize: "1.3rem",
     fontWeight: 600,
     textDecoration: "none",
+    whiteSpace: "nowrap",
   },
+
   brandMark: {
     color: "#c9a227",
     fontSize: "0.85rem",
   },
+
   links: {
     display: "flex",
     alignItems: "center",
-    gap: "28px",
+    gap: "20px",
   },
+
   link: {
-    color: "#a8a094",
-    fontSize: "0.9rem",
+    color: "#b1a99c",
+    fontSize: "0.85rem",
     textDecoration: "none",
+    whiteSpace: "nowrap",
   },
+
+  aiLink: {
+    color: "#e3bc3f",
+    border: "1px solid rgba(201,162,39,0.4)",
+    borderRadius: "14px",
+    padding: "6px 10px",
+    fontSize: "0.76rem",
+    textDecoration: "none",
+    whiteSpace: "nowrap",
+  },
+
   registerBtn: {
     border: "1px solid #c9a227",
-    borderRadius: "2px",
+    borderRadius: "3px",
     color: "#e3bc3f",
-    padding: "8px 18px",
+    padding: "8px 14px",
     textDecoration: "none",
-    fontSize: "0.88rem",
+    fontSize: "0.82rem",
+    whiteSpace: "nowrap",
   },
+
   logoutBtn: {
     background: "transparent",
     border: "1px solid rgba(243,237,224,0.22)",
-    borderRadius: "2px",
-    color: "#a8a094",
+    borderRadius: "3px",
+    color: "#b1a99c",
     cursor: "pointer",
-    padding: "8px 16px",
-    fontSize: "0.88rem",
+    padding: "8px 13px",
+    fontSize: "0.82rem",
+    whiteSpace: "nowrap",
   },
+
   menuBtn: {
     display: "none",
     background: "transparent",

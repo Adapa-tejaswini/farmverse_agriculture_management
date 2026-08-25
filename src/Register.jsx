@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { registerUser } from "./api.js";
 
 const REGISTER_IMAGE =
   "https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?auto=format&fit=crop&w=1600&q=85";
@@ -10,6 +11,7 @@ const Register = ({ onRegister }) => {
   const [role, setRole] = useState("farmer");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
@@ -27,20 +29,26 @@ const Register = ({ onRegister }) => {
     });
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
 
     const { name, email, phone, password, confirmPassword } = formData;
 
-    if (!name || !email || !phone || !password || !confirmPassword) {
+    if (
+      !name.trim() ||
+      !email.trim() ||
+      !phone.trim() ||
+      !password ||
+      !confirmPassword
+    ) {
       setError("Fill in every field to create your account.");
       return;
     }
 
-    const cleanPhone = phone.replace(/\D/g, "");
+    const cleanPhone = phone.replace(/\D/g, "").slice(-10);
 
-    if (cleanPhone.length !== 10) {
+    if (!/^\d{10}$/.test(cleanPhone)) {
       setError("Enter a valid 10-digit phone number.");
       return;
     }
@@ -55,55 +63,24 @@ const Register = ({ onRegister }) => {
       return;
     }
 
-    // Existing LocalStorage register logic — unchanged
-    const savedUsers = JSON.parse(
-      localStorage.getItem("farmverse_accounts") || "[]"
-    );
+    setLoading(true);
 
-    const alreadyExists = savedUsers.some(
-      (account) => account.email === email || account.phone === phone
-    );
+    try {
+      const data = await registerUser({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: cleanPhone,
+        password,
+        role,
+      });
 
-    if (alreadyExists) {
-      setError("An account already exists with this email or phone number.");
-      return;
+      onRegister(data.user);
+      navigate(data.user.role === "farmer" ? "/dashboard" : "/profile");
+    } catch (err) {
+      setError(err.message || "Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    const newUser = {
-      id: Date.now(),
-      name,
-      email,
-      phone,
-      password,
-      role,
-      farmName: "",
-      location: "",
-      farmSize: "",
-      farmingType: "",
-      address: "",
-      createdAt: new Date().toISOString(),
-    };
-
-    localStorage.setItem(
-      "farmverse_accounts",
-      JSON.stringify([...savedUsers, newUser])
-    );
-
-    const loggedInUser = {
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      phone: newUser.phone,
-      role: newUser.role,
-      farmName: "",
-      location: "",
-      farmSize: "",
-      farmingType: "",
-      address: "",
-    };
-
-    onRegister(loggedInUser);
-    navigate(role === "farmer" ? "/dashboard" : "/profile");
   };
 
   return (
@@ -129,6 +106,7 @@ const Register = ({ onRegister }) => {
               type="button"
               onClick={() => setRole("farmer")}
               style={role === "farmer" ? styles.roleActive : styles.roleButton}
+              disabled={loading}
             >
               <span style={styles.roleIcon}>♧</span>
               <span>
@@ -141,6 +119,7 @@ const Register = ({ onRegister }) => {
               type="button"
               onClick={() => setRole("user")}
               style={role === "user" ? styles.roleActive : styles.roleButton}
+              disabled={loading}
             >
               <span style={styles.roleIcon}>◉</span>
               <span>
@@ -173,6 +152,7 @@ const Register = ({ onRegister }) => {
                 onChange={handleChange}
                 style={styles.input}
                 autoComplete="name"
+                disabled={loading}
               />
             </div>
 
@@ -187,6 +167,7 @@ const Register = ({ onRegister }) => {
                   onChange={handleChange}
                   style={styles.input}
                   autoComplete="tel"
+                  disabled={loading}
                 />
               </div>
 
@@ -200,6 +181,7 @@ const Register = ({ onRegister }) => {
                   onChange={handleChange}
                   style={styles.input}
                   autoComplete="email"
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -211,6 +193,7 @@ const Register = ({ onRegister }) => {
                   type="button"
                   style={styles.showButton}
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={loading}
                 >
                   {showPassword ? "Hide" : "Show"}
                 </button>
@@ -224,6 +207,7 @@ const Register = ({ onRegister }) => {
                 onChange={handleChange}
                 style={styles.input}
                 autoComplete="new-password"
+                disabled={loading}
               />
             </div>
 
@@ -234,6 +218,7 @@ const Register = ({ onRegister }) => {
                   type="button"
                   style={styles.showButton}
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={loading}
                 >
                   {showConfirmPassword ? "Hide" : "Show"}
                 </button>
@@ -247,11 +232,26 @@ const Register = ({ onRegister }) => {
                 onChange={handleChange}
                 style={styles.input}
                 autoComplete="new-password"
+                disabled={loading}
               />
             </div>
 
-            <button type="submit" style={styles.submitButton}>
-              Create my account <span>→</span>
+            <button
+              type="submit"
+              style={{
+                ...styles.submitButton,
+                opacity: loading ? 0.7 : 1,
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+              disabled={loading}
+            >
+              {loading ? (
+                "Creating account..."
+              ) : (
+                <>
+                  Create my account <span>→</span>
+                </>
+              )}
             </button>
           </form>
 
@@ -281,8 +281,8 @@ const Register = ({ onRegister }) => {
             </h2>
 
             <p style={styles.rightText}>
-              Build a record of your farm as the season unfolds — one crop,
-              one harvest, one decision at a time.
+              Build a record of your farm as the season unfolds — one crop, one
+              harvest, one decision at a time.
             </p>
           </div>
 

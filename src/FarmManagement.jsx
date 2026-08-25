@@ -19,8 +19,12 @@ const FarmManagement = ({ user }) => {
   const [formData, setFormData] = useState(emptyFarm);
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("success");
 
-  const loadFarms = () => setFarms(getFarms(user.id));
+  const loadFarms = () => {
+    if (!user?.id) return;
+    setFarms(getFarms(user.id));
+  };
 
   useEffect(() => {
     if (user?.id) loadFarms();
@@ -43,31 +47,41 @@ const FarmManagement = ({ user }) => {
   const handleSubmit = (event) => {
     event.preventDefault();
     setMessage("");
+    setMessageType("success");
 
-    if (!formData.farmName || !formData.location || !formData.landSize) {
+    if (!formData.farmName.trim() || !formData.location.trim() || !formData.landSize) {
+      setMessageType("error");
       setMessage("Farm name, location, and land size are required.");
       return;
     }
 
     if (Number(formData.landSize) <= 0) {
+      setMessageType("error");
       setMessage("Land size must be greater than zero.");
       return;
     }
 
-    if (editingId) {
-      updateFarm(user.id, editingId, formData);
-      setMessage("Farm details updated successfully.");
-    } else {
-      addFarm(user.id, formData);
-      setMessage("Farm added successfully.");
-    }
+    try {
+      if (editingId) {
+        updateFarm(user.id, editingId, formData);
+        setMessage("Farm details updated successfully.");
+      } else {
+        addFarm(user.id, formData);
+        setMessage("Farm added successfully.");
+      }
 
-    resetForm();
-    loadFarms();
+      setMessageType("success");
+      resetForm();
+      loadFarms();
+    } catch (err) {
+      setMessageType("error");
+      setMessage(err.message || "Could not save farm record.");
+    }
   };
 
   const handleEdit = (farm) => {
     setEditingId(farm.id);
+    setMessage("");
 
     setFormData({
       farmName: farm.farmName || "",
@@ -93,6 +107,7 @@ const FarmManagement = ({ user }) => {
 
     deleteFarm(user.id, farmId);
     loadFarms();
+    setMessageType("success");
     setMessage("Farm deleted successfully.");
   };
 
@@ -104,7 +119,9 @@ const FarmManagement = ({ user }) => {
           <div style={styles.heroOverlay} />
 
           <div style={styles.heroContent}>
-            <p className="mono" style={styles.eyebrow}>FARM MANAGEMENT</p>
+            <p className="mono" style={styles.eyebrow}>
+              FARM MANAGEMENT
+            </p>
             <h1 style={styles.title}>Keep every field on record.</h1>
             <p style={styles.subtitle}>
               Add farm locations, land size, irrigation methods, and farming
@@ -139,18 +156,53 @@ const FarmManagement = ({ user }) => {
               can be updated later.
             </p>
 
-            {message && <p style={styles.message}>{message}</p>}
+            {message && (
+              <p
+                style={
+                  messageType === "error"
+                    ? styles.errorMessage
+                    : styles.message
+                }
+              >
+                {message}
+              </p>
+            )}
 
             <form onSubmit={handleSubmit}>
-              <Field label="Farm name *" name="farmName" value={formData.farmName} onChange={handleChange} placeholder="Example: Green Valley Farm" />
-              <Field label="Village / location *" name="location" value={formData.location} onChange={handleChange} placeholder="Example: Nashik, Maharashtra" />
+              <Field
+                label="Farm name *"
+                name="farmName"
+                value={formData.farmName}
+                onChange={handleChange}
+                placeholder="Example: Green Valley Farm"
+              />
+
+              <Field
+                label="Village / location *"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                placeholder="Example: Nashik, Maharashtra"
+              />
 
               <div style={styles.twoColumn}>
-                <Field label="Land size *" type="number" name="landSize" value={formData.landSize} onChange={handleChange} placeholder="Example: 5" />
+                <Field
+                  label="Land size *"
+                  type="number"
+                  name="landSize"
+                  value={formData.landSize}
+                  onChange={handleChange}
+                  placeholder="Example: 5"
+                />
 
                 <div style={styles.field}>
                   <label style={styles.label}>Unit</label>
-                  <select name="landUnit" value={formData.landUnit} onChange={handleChange} style={styles.input}>
+                  <select
+                    name="landUnit"
+                    value={formData.landUnit}
+                    onChange={handleChange}
+                    style={styles.input}
+                  >
                     <option value="acres">Acres</option>
                     <option value="hectares">Hectares</option>
                     <option value="sq ft">Square feet</option>
@@ -212,7 +264,11 @@ const FarmManagement = ({ user }) => {
                 </button>
 
                 {editingId && (
-                  <button type="button" style={styles.cancelBtn} onClick={resetForm}>
+                  <button
+                    type="button"
+                    style={styles.cancelBtn}
+                    onClick={resetForm}
+                  >
                     Cancel
                   </button>
                 )}
@@ -223,9 +279,12 @@ const FarmManagement = ({ user }) => {
           <section style={styles.listCard}>
             <div style={styles.listHeader}>
               <div>
-                <p className="mono" style={styles.cardEyebrow}>REGISTERED FARMS</p>
+                <p className="mono" style={styles.cardEyebrow}>
+                  REGISTERED FARMS
+                </p>
                 <h2 style={styles.sectionTitle}>
-                  {farms.length} {farms.length === 1 ? "farm" : "farms"} on record
+                  {farms.length} {farms.length === 1 ? "farm" : "farms"} on
+                  record
                 </h2>
               </div>
             </div>
@@ -254,17 +313,32 @@ const FarmManagement = ({ user }) => {
                     </div>
 
                     <div style={styles.farmInfo}>
-                      <FarmInfo label="SOIL TYPE" value={farm.soilType || "Not added"} />
-                      <FarmInfo label="IRRIGATION" value={farm.irrigationType || "Not added"} />
-                      <FarmInfo label="FARMING TYPE" value={farm.farmingType || "Not added"} />
+                      <FarmInfo
+                        label="SOIL TYPE"
+                        value={farm.soilType || "Not added"}
+                      />
+                      <FarmInfo
+                        label="IRRIGATION"
+                        value={farm.irrigationType || "Not added"}
+                      />
+                      <FarmInfo
+                        label="FARMING TYPE"
+                        value={farm.farmingType || "Not added"}
+                      />
                     </div>
 
                     <div style={styles.cardButtons}>
-                      <button style={styles.editBtn} onClick={() => handleEdit(farm)}>
+                      <button
+                        style={styles.editBtn}
+                        onClick={() => handleEdit(farm)}
+                      >
                         Edit details
                       </button>
 
-                      <button style={styles.deleteBtn} onClick={() => handleDelete(farm.id)}>
+                      <button
+                        style={styles.deleteBtn}
+                        onClick={() => handleDelete(farm.id)}
+                      >
                         Delete
                       </button>
                     </div>
@@ -319,44 +393,190 @@ const styles = {
   page: { minHeight: "calc(100vh - 65px)", padding: "38px 20px 65px" },
   container: { maxWidth: "1180px", margin: "0 auto" },
 
-  hero: { minHeight: "250px", position: "relative", overflow: "hidden", borderRadius: "6px", border: "1px solid rgba(201,162,39,0.24)", display: "flex", alignItems: "center", marginBottom: "22px" },
-  heroImage: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" },
-  heroOverlay: { position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(11,10,8,0.95), rgba(11,10,8,0.72), rgba(11,10,8,0.25))" },
-  heroContent: { position: "relative", zIndex: 1, maxWidth: "630px", padding: "35px" },
-  eyebrow: { color: "#d9b538", fontSize: "0.69rem", letterSpacing: "0.14em", marginBottom: "10px" },
+  hero: {
+    minHeight: "250px",
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: "6px",
+    border: "1px solid rgba(201,162,39,0.24)",
+    display: "flex",
+    alignItems: "center",
+    marginBottom: "22px",
+  },
+  heroImage: {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  heroOverlay: {
+    position: "absolute",
+    inset: 0,
+    background:
+      "linear-gradient(90deg, rgba(11,10,8,0.95), rgba(11,10,8,0.72), rgba(11,10,8,0.25))",
+  },
+  heroContent: {
+    position: "relative",
+    zIndex: 1,
+    maxWidth: "630px",
+    padding: "35px",
+  },
+  eyebrow: {
+    color: "#d9b538",
+    fontSize: "0.69rem",
+    letterSpacing: "0.14em",
+    marginBottom: "10px",
+  },
   title: { color: "#f3ede0", fontSize: "2rem", fontWeight: 500, margin: 0 },
   subtitle: { color: "#c9c0b2", lineHeight: 1.6, margin: "10px 0 0" },
-  heroStats: { position: "absolute", zIndex: 2, right: "28px", bottom: "24px", display: "flex", gap: "10px" },
-  layout: { display: "grid", gridTemplateColumns: "minmax(320px, 0.9fr) minmax(390px, 1.1fr)", gap: "20px" },
+  heroStats: {
+    position: "absolute",
+    zIndex: 2,
+    right: "28px",
+    bottom: "24px",
+    display: "flex",
+    gap: "10px",
+    color: "#f3ede0",
+  },
+  layout: {
+    display: "grid",
+    gridTemplateColumns: "minmax(320px, 0.9fr) minmax(390px, 1.1fr)",
+    gap: "20px",
+  },
 
-  formCard: { background: "#1a1712", border: "1px solid rgba(201,162,39,0.2)", borderRadius: "5px", padding: "29px" },
-  listCard: { background: "#1a1712", border: "1px solid rgba(201,162,39,0.2)", borderRadius: "5px", padding: "29px" },
-  cardEyebrow: { color: "#7c5432", fontSize: "0.67rem", letterSpacing: "0.1em", marginBottom: "7px" },
+  formCard: {
+    background: "#1a1712",
+    border: "1px solid rgba(201,162,39,0.2)",
+    borderRadius: "5px",
+    padding: "29px",
+  },
+  listCard: {
+    background: "#1a1712",
+    border: "1px solid rgba(201,162,39,0.2)",
+    borderRadius: "5px",
+    padding: "29px",
+  },
+  listHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "15px",
+  },
+  cardEyebrow: {
+    color: "#7c5432",
+    fontSize: "0.67rem",
+    letterSpacing: "0.1em",
+    marginBottom: "7px",
+  },
   sectionTitle: { color: "#f3ede0", fontSize: "1.18rem", fontWeight: 500, margin: 0 },
   formHint: { color: "#8d8579", fontSize: "0.78rem", lineHeight: 1.5, marginTop: "11px" },
-  message: { color: "#e3bc3f", fontSize: "0.84rem", marginTop: "12px" },
+  message: {
+    color: "#e3bc3f",
+    fontSize: "0.84rem",
+    marginTop: "12px",
+    lineHeight: 1.5,
+  },
+  errorMessage: {
+    color: "#ffc1a6",
+    background: "rgba(224,122,79,0.08)",
+    border: "1px solid rgba(224,122,79,0.22)",
+    padding: "9px",
+    borderRadius: "3px",
+    fontSize: "0.84rem",
+    marginTop: "12px",
+    lineHeight: 1.5,
+  },
   field: { marginTop: "16px" },
   label: { display: "block", color: "#a8a094", fontSize: "0.79rem", marginBottom: "6px" },
-  input: { width: "100%", background: "#12110e", color: "#f3ede0", border: "1px solid rgba(243,237,224,0.15)", borderRadius: "3px", padding: "10px", outline: "none", fontFamily: "inherit" },
+  input: {
+    width: "100%",
+    background: "#12110e",
+    color: "#f3ede0",
+    border: "1px solid rgba(243,237,224,0.15)",
+    borderRadius: "3px",
+    padding: "10px",
+    outline: "none",
+    fontFamily: "inherit",
+  },
   twoColumn: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" },
   buttonRow: { display: "flex", gap: "10px", marginTop: "26px" },
-  primaryBtn: { background: "#c9a227", color: "#0b0a08", border: "none", borderRadius: "3px", padding: "11px 17px", fontWeight: 700, cursor: "pointer" },
-  cancelBtn: { background: "transparent", color: "#a8a094", border: "1px solid rgba(243,237,224,0.2)", borderRadius: "3px", padding: "11px 17px", cursor: "pointer" },
+  primaryBtn: {
+    background: "#c9a227",
+    color: "#0b0a08",
+    border: "none",
+    borderRadius: "3px",
+    padding: "11px 17px",
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  cancelBtn: {
+    background: "transparent",
+    color: "#a8a094",
+    border: "1px solid rgba(243,237,224,0.2)",
+    borderRadius: "3px",
+    padding: "11px 17px",
+    cursor: "pointer",
+  },
 
   empty: { color: "#a8a094", textAlign: "center", padding: "80px 15px", lineHeight: 1.6 },
   emptyIcon: { display: "block", color: "#7c5432", fontSize: "2.4rem", marginBottom: "10px" },
   farmList: { display: "flex", flexDirection: "column", gap: "12px", marginTop: "22px" },
-  farmCard: { background: "#151310", border: "1px solid rgba(243,237,224,0.1)", borderLeft: "3px solid rgba(201,162,39,0.65)", padding: "19px", borderRadius: "4px" },
+  farmCard: {
+    background: "#151310",
+    border: "1px solid rgba(243,237,224,0.1)",
+    borderLeft: "3px solid rgba(201,162,39,0.65)",
+    padding: "19px",
+    borderRadius: "4px",
+  },
   farmTop: { display: "flex", alignItems: "flex-start", gap: "11px" },
-  farmSymbol: { width: "35px", height: "35px", display: "flex", alignItems: "center", justifyContent: "center", color: "#e3bc3f", background: "rgba(201,162,39,0.1)", borderRadius: "3px" },
+  farmSymbol: {
+    width: "35px",
+    height: "35px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#e3bc3f",
+    background: "rgba(201,162,39,0.1)",
+    borderRadius: "3px",
+  },
   farmName: { color: "#f3ede0", fontSize: "1.06rem", fontWeight: 500, margin: 0 },
   location: { color: "#a8a094", fontSize: "0.78rem", margin: "5px 0 0" },
-  landBadge: { color: "#e3bc3f", border: "1px solid rgba(201,162,39,0.35)", padding: "5px 8px", borderRadius: "13px", fontSize: "0.68rem", fontFamily: "'IBM Plex Mono', monospace", whiteSpace: "nowrap" },
+  landBadge: {
+    color: "#e3bc3f",
+    border: "1px solid rgba(201,162,39,0.35)",
+    padding: "5px 8px",
+    borderRadius: "13px",
+    fontSize: "0.68rem",
+    fontFamily: "'IBM Plex Mono', monospace",
+    whiteSpace: "nowrap",
+  },
   farmInfo: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginTop: "17px" },
-  infoBox: { display: "flex", flexDirection: "column", gap: "5px", padding: "10px", background: "rgba(201,162,39,0.05)", color: "#a8a094", fontSize: "0.67rem" },
+  infoBox: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px",
+    padding: "10px",
+    background: "rgba(201,162,39,0.05)",
+    color: "#a8a094",
+    fontSize: "0.67rem",
+  },
   cardButtons: { display: "flex", justifyContent: "flex-end", gap: "9px", marginTop: "17px" },
-  editBtn: { background: "transparent", border: "1px solid rgba(201,162,39,0.42)", color: "#e3bc3f", padding: "7px 11px", borderRadius: "2px", cursor: "pointer" },
-  deleteBtn: { background: "transparent", border: "1px solid rgba(224,122,79,0.4)", color: "#e07a4f", padding: "7px 11px", borderRadius: "2px", cursor: "pointer" },
+  editBtn: {
+    background: "transparent",
+    border: "1px solid rgba(201,162,39,0.42)",
+    color: "#e3bc3f",
+    padding: "7px 11px",
+    borderRadius: "2px",
+    cursor: "pointer",
+  },
+  deleteBtn: {
+    background: "transparent",
+    border: "1px solid rgba(224,122,79,0.4)",
+    color: "#e07a4f",
+    padding: "7px 11px",
+    borderRadius: "2px",
+    cursor: "pointer",
+  },
 };
 
 export default FarmManagement;
