@@ -104,7 +104,7 @@ The database will store information such as:
 | ---: | ---------------- | ----------------------- |
 | 1 | Adapa Tejaswini  | Login & Registration, Farmer Profile – Frontend |
 | 2 | Charitha         | Login & Registration – Backend |
-| 3 | Asima            | Crop Management & Farm Management – Frontend |
+| 3 | Aasima            | Crop Management & Farm Management – Frontend |
 | 4 | Ashuthosh Mishra | Crop Management & Farm Management – Backend |
 | 5 | Anshul           | PostgreSQL Database Setup |
 
