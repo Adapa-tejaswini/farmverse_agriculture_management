@@ -45,7 +45,8 @@ const Login = ({ onLogin }) => {
       });
 
       onLogin(data.user);
-      navigate(data.user.role === "farmer" ? "/dashboard" : "/profile");
+
+      navigate(data.user.role === "farmer" ? "/dashboard" : "/marketplace");
     } catch (err) {
       setError(err.message || "Login failed. Please try again.");
     } finally {
@@ -67,23 +68,26 @@ const Login = ({ onLogin }) => {
 
           <div style={styles.leftContent}>
             <p className="mono" style={styles.eyebrow}>
-              FARM RECORDS · LOCAL HARVESTS · BETTER SEASONS
+              FARM RECORDS · LOCAL HARVESTS · FRESH PRODUCE
             </p>
 
             <h1 style={styles.heroTitle}>
-              The work starts
+              One platform
               <br />
-              before sunrise.
+              for farmers
+              <br />
+              and buyers.
             </h1>
 
             <p style={styles.heroText}>
-              Keep your farm, crops, harvests, and produce records close at hand.
+              Farmers manage crops and produce listings. Buyers discover fresh
+              local harvests from nearby farms.
             </p>
           </div>
 
           <div style={styles.photoCaption}>
             <span style={styles.captionLine} />
-            <span>Made for the people who grow.</span>
+            <span>Made for people who grow and people who buy fresh.</span>
           </div>
         </section>
 
@@ -95,13 +99,13 @@ const Login = ({ onLogin }) => {
           <h2 style={styles.title}>
             {role === "farmer"
               ? "Sign in to your farm."
-              : "Sign in to Farmverse."}
+              : "Sign in to marketplace."}
           </h2>
 
           <p style={styles.description}>
             {role === "farmer"
-              ? "Manage fields, crops, harvest plans, and produce listings."
-              : "View your saved farms, local produce, and account details."}
+              ? "Manage fields, crops, AI tools, harvest plans, and produce listings."
+              : "Browse local produce and request orders from farmers."}
           </p>
 
           <div style={styles.roleToggle}>
@@ -127,7 +131,7 @@ const Login = ({ onLogin }) => {
               <span style={styles.roleSymbol}>◉</span>
               <span>
                 <strong>Buyer</strong>
-                <small>Local produce</small>
+                <small>Marketplace</small>
               </span>
             </button>
           </div>

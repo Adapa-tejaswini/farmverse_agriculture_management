@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   addListing,
@@ -48,6 +48,73 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
     loadData();
   }, [user?.id]);
 
+  const primaryFarm = farms[0];
+
+  const activeCrops = crops.filter((crop) => crop.cropStatus !== "Harvested");
+
+  const totalLand = farms.reduce(
+    (total, farm) => total + Number(farm.landSize || 0),
+    0
+  );
+
+  const totalListedQuantity = listings.reduce(
+    (total, listing) => total + Number(listing.quantity || 0),
+    0
+  );
+
+  const displayFarmName =
+    user?.farmName || primaryFarm?.farmName || "Add your first farm";
+
+  const displayLocation =
+    user?.location || primaryFarm?.location || "Add farm location";
+
+  const displayFarmSize =
+    user?.farmSize ||
+    (primaryFarm
+      ? `${primaryFarm.landSize} ${primaryFarm.landUnit}`
+      : "Add land size");
+
+  const displayFarmingType =
+    user?.farmingType || primaryFarm?.farmingType || "Not added";
+
+  const setupSteps = useMemo(
+    () => [
+      {
+        done: farms.length > 0,
+        label: "Add a farm",
+        description: "Save your field location, land area, and water source.",
+        link: "/farm-management",
+        icon: "🌾",
+      },
+      {
+        done: crops.length > 0,
+        label: "Add a crop",
+        description: "Track planting, crop stage, yield, and harvest date.",
+        link: "/crop-management",
+        icon: "☘️",
+      },
+      {
+        done: listings.length > 0,
+        label: "Create a listing",
+        description: "Show buyers what produce is available from your farm.",
+        link: "#produce-listings",
+        icon: "▣",
+      },
+      {
+        done: crops.some(
+          (crop) => crop.soilPh || crop.nitrogen || crop.phosphorus || crop.potassium
+        ),
+        label: "Add soil data",
+        description: "Add pH and NPK values for better fertilizer guidance.",
+        link: "/crop-management",
+        icon: "🧪",
+      },
+    ],
+    [farms, crops, listings]
+  );
+
+  const completedSteps = setupSteps.filter((step) => step.done).length;
+
   const handleProfileChange = (event) => {
     setProfileData({
       ...profileData,
@@ -61,19 +128,6 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
       ...profileData,
     };
 
-    const allAccounts = JSON.parse(
-      localStorage.getItem("farmverse_accounts") || "[]"
-    );
-
-    const updatedAccounts = allAccounts.map((account) =>
-      account.id === user.id ? { ...account, ...updatedUser } : account
-    );
-
-    localStorage.setItem(
-      "farmverse_accounts",
-      JSON.stringify(updatedAccounts)
-    );
-
     onUpdateUser(updatedUser);
     setEditing(false);
     setMessage("Farm profile updated successfully.");
@@ -83,7 +137,7 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
     const { name, value } = event.target;
 
     if (name === "cropId") {
-      const selectedCrop = crops.find((crop) => crop.id === Number(value));
+      const selectedCrop = crops.find((crop) => Number(crop.id) === Number(value));
 
       setListingData({
         ...listingData,
@@ -105,6 +159,11 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
 
     if (!listingData.cropName || !listingData.quantity || !listingData.price) {
       setMessage("Crop name, quantity, and price are required.");
+      return;
+    }
+
+    if (Number(listingData.quantity) <= 0 || Number(listingData.price) <= 0) {
+      setMessage("Quantity and price must be greater than zero.");
       return;
     }
 
@@ -130,61 +189,22 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
     setMessage("Produce listing removed successfully.");
   };
 
-  /* Use primary farm data if user profile does not have it */
-  const primaryFarm = farms[0];
-
-  const displayFarmName =
-    user?.farmName || primaryFarm?.farmName || "Add your first farm";
-
-  const displayLocation =
-    user?.location || primaryFarm?.location || "Add farm location";
-
-  const displayFarmSize =
-    user?.farmSize ||
-    (primaryFarm
-      ? `${primaryFarm.landSize} ${primaryFarm.landUnit}`
-      : "Add land size");
-
-  const displayFarmingType =
-    user?.farmingType || primaryFarm?.farmingType || "Not added";
-
-  const setupSteps = [
-    {
-      done: farms.length > 0,
-      label: "Add a farm",
-      description: "Save your field location, land area, and water source.",
-      link: "/farm-management",
-      icon: "⌖",
-    },
-    {
-      done: crops.length > 0,
-      label: "Add a crop",
-      description: "Track planting, crop stage, yield, and harvest date.",
-      link: "/crop-management",
-      icon: "☘",
-    },
-    {
-      done: listings.length > 0,
-      label: "Create a listing",
-      description: "Show buyers what produce is available from your farm.",
-      link: "#produce-listings",
-      icon: "▣",
-    },
+  const quickLinks = [
+    { label: "Dashboard", path: "/dashboard", icon: "◫" },
+    { label: "Manage farms", path: "/farm-management", icon: "🌾" },
+    { label: "Manage crops", path: "/crop-management", icon: "☘️" },
+    { label: "Fertilizer", path: "/fertilizer", icon: "🧪" },
+    { label: "Crop advisor", path: "/crop-recommendation", icon: "🌱" },
+    { label: "Disease scan", path: "/disease-detection", icon: "🔍" },
+    { label: "Alerts", path: "/notifications", icon: "🔔" },
+    { label: "AI Assistant", path: "/assistant", icon: "✦" },
   ];
-
-  const completedSteps = setupSteps.filter((step) => step.done).length;
 
   return (
     <main style={styles.page}>
       <div style={styles.container}>
-        {/* Farmer profile banner */}
         <section style={styles.banner}>
-          <img
-            src={PROFILE_IMAGE}
-            alt="Agricultural field"
-            style={styles.bannerImage}
-          />
-
+          <img src={PROFILE_IMAGE} alt="Agricultural field" style={styles.bannerImage} />
           <div style={styles.bannerOverlay} />
 
           <div style={styles.bannerContent}>
@@ -194,7 +214,7 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
 
             <div style={styles.profileIdentity}>
               <p className="mono" style={styles.eyebrow}>
-                FARMER RECORD · VERIFIED
+                FARMER RECORD
               </p>
 
               <h1 style={styles.name}>{user?.name || "Farmer"}</h1>
@@ -211,94 +231,54 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
           </div>
 
           <div style={styles.bannerFooter}>
-            <span>🌱 Farm record progress: {completedSteps}/3 complete</span>
+            <span>
+              🌱 Farm profile progress: {completedSteps}/{setupSteps.length} complete
+            </span>
             <span>📍 {displayLocation}</span>
           </div>
         </section>
 
-        {/* Main profile stats */}
         <section style={styles.statsGrid}>
-          <article style={styles.statCard}>
-            <span style={styles.statIcon}>▣</span>
+          <StatCard
+            icon="🌾"
+            label="FARMS"
+            value={farms.length}
+            hint={`${totalLand} acres recorded`}
+          />
 
-            <div>
-              <span className="mono" style={styles.statLabel}>
-                PRODUCE LISTINGS
-              </span>
+          <StatCard
+            icon="☘️"
+            label="ACTIVE CROPS"
+            value={activeCrops.length}
+            hint={`${crops.length} total crop records`}
+          />
 
-              <strong style={styles.statValue}>{listings.length}</strong>
+          <StatCard
+            icon="▣"
+            label="LISTINGS"
+            value={listings.length}
+            hint={`${totalListedQuantity} total listed units`}
+          />
 
-              <span style={styles.statHint}>
-                {listings.length > 0
-                  ? "Listings available for buyers"
-                  : "Create your first produce listing"}
-              </span>
-            </div>
-          </article>
-
-          <article style={styles.statCard}>
-            <span style={styles.statIcon}>☘</span>
-
-            <div>
-              <span className="mono" style={styles.statLabel}>
-                CROP RECORDS
-              </span>
-
-              <strong style={styles.statValue}>{crops.length}</strong>
-
-              <span style={styles.statHint}>
-                {crops.length > 0
-                  ? "Crops tracked this season"
-                  : "Add crops from Crop Management"}
-              </span>
-            </div>
-          </article>
-
-          <article style={styles.statCard}>
-            <span style={styles.statIcon}>✓</span>
-
-            <div>
-              <span className="mono" style={styles.statLabel}>
-                FARM PROFILE
-              </span>
-
-              <strong style={styles.statText}>
-                {completedSteps}/3 ready
-              </strong>
-
-              <span style={styles.statHint}>
-                Complete farms, crops, and listings
-              </span>
-            </div>
-          </article>
+          <StatCard
+            icon="✓"
+            label="PROFILE"
+            value={`${completedSteps}/${setupSteps.length}`}
+            hint="Farmverse setup progress"
+          />
         </section>
 
-        {/* Quick navigation */}
         <section style={styles.quickLinks}>
-          <Link to="/dashboard" style={styles.quickLink}>
-            <span>◫</span>
-            Dashboard
-          </Link>
-
-          <Link to="/farm-management" style={styles.quickLink}>
-            <span>⌖</span>
-            Manage farms
-          </Link>
-
-          <Link to="/crop-management" style={styles.quickLink}>
-            <span>☘</span>
-            Manage crops
-          </Link>
-
-          <Link to="/prediction" style={styles.quickLink}>
-            <span>⌁</span>
-            Crop advisor
-          </Link>
+          {quickLinks.map((item) => (
+            <Link key={item.path} to={item.path} style={styles.quickLink}>
+              <span>{item.icon}</span>
+              {item.label}
+            </Link>
+          ))}
         </section>
 
         <div className="furrow" style={{ margin: "30px 0" }} />
 
-        {/* Farm identity section */}
         <section style={styles.sectionCard}>
           <div style={styles.sectionHeader}>
             <div>
@@ -321,7 +301,18 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
 
                 <button
                   style={styles.cancelBtn}
-                  onClick={() => setEditing(false)}
+                  onClick={() => {
+                    setEditing(false);
+                    setProfileData({
+                      name: user?.name || "",
+                      email: user?.email || "",
+                      phone: user?.phone || "",
+                      farmName: user?.farmName || "",
+                      location: user?.location || "",
+                      farmSize: user?.farmSize || "",
+                      farmingType: user?.farmingType || "",
+                    });
+                  }}
                 >
                   Cancel
                 </button>
@@ -333,87 +324,26 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
 
           {editing ? (
             <div style={styles.editGrid}>
-              <ProfileInput
-                label="Full name"
-                name="name"
-                value={profileData.name}
-                onChange={handleProfileChange}
-              />
-
-              <ProfileInput
-                label="Email address"
-                name="email"
-                value={profileData.email}
-                onChange={handleProfileChange}
-              />
-
-              <ProfileInput
-                label="Phone number"
-                name="phone"
-                value={profileData.phone}
-                onChange={handleProfileChange}
-              />
-
-              <ProfileInput
-                label="Primary farm name"
-                name="farmName"
-                value={profileData.farmName}
-                onChange={handleProfileChange}
-              />
-
-              <ProfileInput
-                label="Village / location"
-                name="location"
-                value={profileData.location}
-                onChange={handleProfileChange}
-              />
-
-              <ProfileInput
-                label="Farm size"
-                name="farmSize"
-                value={profileData.farmSize}
-                onChange={handleProfileChange}
-              />
-
-              <ProfileInput
-                label="Farming type"
-                name="farmingType"
-                value={profileData.farmingType}
-                onChange={handleProfileChange}
-              />
+              <ProfileInput label="Full name" name="name" value={profileData.name} onChange={handleProfileChange} />
+              <ProfileInput label="Email address" name="email" value={profileData.email} onChange={handleProfileChange} />
+              <ProfileInput label="Phone number" name="phone" value={profileData.phone} onChange={handleProfileChange} />
+              <ProfileInput label="Primary farm name" name="farmName" value={profileData.farmName} onChange={handleProfileChange} />
+              <ProfileInput label="Village / location" name="location" value={profileData.location} onChange={handleProfileChange} />
+              <ProfileInput label="Farm size" name="farmSize" value={profileData.farmSize} onChange={handleProfileChange} />
+              <ProfileInput label="Farming type" name="farmingType" value={profileData.farmingType} onChange={handleProfileChange} />
             </div>
           ) : (
             <div style={styles.infoGrid}>
-              <InfoCard
-                label="PRIMARY FARM"
-                value={displayFarmName}
-                icon="⌖"
-              />
-
-              <InfoCard
-                label="LOCATION"
-                value={displayLocation}
-                icon="📍"
-              />
-
-              <InfoCard
-                label="LAND AREA"
-                value={displayFarmSize}
-                icon="◫"
-              />
-
-              <InfoCard
-                label="FARMING TYPE"
-                value={displayFarmingType}
-                icon="☘"
-              />
+              <InfoCard label="PRIMARY FARM" value={displayFarmName} icon="🌾" />
+              <InfoCard label="LOCATION" value={displayLocation} icon="📍" />
+              <InfoCard label="LAND AREA" value={displayFarmSize} icon="◫" />
+              <InfoCard label="FARMING TYPE" value={displayFarmingType} icon="☘️" />
             </div>
           )}
         </section>
 
         <div className="furrow" style={{ margin: "30px 0" }} />
 
-        {/* Setup checklist for reviewers and new farmers */}
         <section style={styles.setupCard}>
           <div style={styles.sectionHeader}>
             <div>
@@ -421,13 +351,11 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
                 FARMER SETUP CHECKLIST
               </p>
 
-              <h2 style={styles.sectionTitle}>
-                Build your Farmverse record
-              </h2>
+              <h2 style={styles.sectionTitle}>Build your Farmverse record</h2>
             </div>
 
             <span style={styles.setupProgress}>
-              {completedSteps}/3 complete
+              {completedSteps}/{setupSteps.length} complete
             </span>
           </div>
 
@@ -488,7 +416,6 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
 
         <div className="furrow" style={{ margin: "30px 0" }} />
 
-        {/* Listings and marketplace */}
         <section id="produce-listings" style={styles.listingLayout}>
           <div style={styles.listingPanel}>
             <div style={styles.sectionHeader}>
@@ -514,9 +441,9 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
                 </h3>
 
                 <p style={styles.emptyText}>
-                  When your crop is ready for sale, add its quantity and price
-                  here. Buyers will later be able to discover fresh produce
-                  directly from your farm.
+                  When your crop is ready for sale, add quantity and price here.
+                  Buyers will later be able to discover fresh produce directly
+                  from your farm.
                 </p>
 
                 <div style={styles.demoPreview}>
@@ -578,7 +505,6 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
             )}
           </div>
 
-          {/* Add new produce listing */}
           <aside style={styles.addListingCard}>
             <p className="mono" style={styles.sectionEyebrow}>
               NEW LISTING
@@ -587,8 +513,8 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
             <h2 style={styles.sectionTitle}>List fresh produce</h2>
 
             <p style={styles.addDescription}>
-              Add the quantity and price so nearby buyers know what is
-              available from your farm.
+              Add quantity and price so nearby buyers know what is available
+              from your farm.
             </p>
 
             <div style={styles.field}>
@@ -678,6 +604,22 @@ const FarmerProfile = ({ user, onLogout, onUpdateUser }) => {
   );
 };
 
+const StatCard = ({ icon, label, value, hint }) => (
+  <article style={styles.statCard}>
+    <span style={styles.statIcon}>{icon}</span>
+
+    <div>
+      <span className="mono" style={styles.statLabel}>
+        {label}
+      </span>
+
+      <strong style={styles.statValue}>{value}</strong>
+
+      <span style={styles.statHint}>{hint}</span>
+    </div>
+  </article>
+);
+
 const InfoCard = ({ label, value, icon }) => (
   <div style={styles.infoCard}>
     <span style={styles.infoIcon}>{icon}</span>
@@ -710,12 +652,10 @@ const styles = {
     minHeight: "calc(100vh - 65px)",
     padding: "40px 20px 65px",
   },
-
   container: {
     maxWidth: "1180px",
     margin: "0 auto",
   },
-
   banner: {
     minHeight: "255px",
     position: "relative",
@@ -725,7 +665,6 @@ const styles = {
     display: "flex",
     alignItems: "center",
   },
-
   bannerImage: {
     position: "absolute",
     inset: 0,
@@ -733,14 +672,12 @@ const styles = {
     height: "100%",
     objectFit: "cover",
   },
-
   bannerOverlay: {
     position: "absolute",
     inset: 0,
     background:
       "linear-gradient(90deg, rgba(11,10,8,0.96), rgba(11,10,8,0.72), rgba(11,10,8,0.28))",
   },
-
   bannerContent: {
     position: "relative",
     zIndex: 1,
@@ -750,7 +687,6 @@ const styles = {
     gap: "16px",
     padding: "35px 38px 65px",
   },
-
   avatar: {
     width: "62px",
     height: "62px",
@@ -764,31 +700,26 @@ const styles = {
     fontSize: "1.8rem",
     fontWeight: 600,
   },
-
   profileIdentity: {
     flex: 1,
   },
-
   eyebrow: {
     color: "#d9b538",
     fontSize: "0.68rem",
     letterSpacing: "0.14em",
     marginBottom: "8px",
   },
-
   name: {
     color: "#f3ede0",
     fontSize: "2rem",
     fontWeight: 500,
     margin: 0,
   },
-
   contact: {
     color: "#c5bcad",
     fontSize: "0.83rem",
     margin: "5px 0 0",
   },
-
   logoutBtn: {
     background: "transparent",
     border: "1px solid rgba(224,122,79,0.5)",
@@ -798,7 +729,6 @@ const styles = {
     cursor: "pointer",
     alignSelf: "flex-start",
   },
-
   bannerFooter: {
     position: "absolute",
     left: 0,
@@ -814,14 +744,12 @@ const styles = {
     borderTop: "1px solid rgba(243,237,224,0.09)",
     fontSize: "0.76rem",
   },
-
   statsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
+    gridTemplateColumns: "repeat(4, 1fr)",
     gap: "14px",
     marginTop: "18px",
   },
-
   statCard: {
     display: "flex",
     gap: "13px",
@@ -830,40 +758,30 @@ const styles = {
     borderRadius: "4px",
     padding: "18px",
   },
-
   statIcon: {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    minWidth: "35px",
-    height: "35px",
+    minWidth: "38px",
+    height: "38px",
     color: "#e3bc3f",
     background: "rgba(201,162,39,0.1)",
     borderRadius: "3px",
+    fontSize: "1.2rem",
   },
-
   statLabel: {
     display: "block",
     color: "#7c5432",
     fontSize: "0.65rem",
     letterSpacing: "0.08em",
   },
-
   statValue: {
     display: "block",
     color: "#f3ede0",
     fontFamily: "'IBM Plex Mono', monospace",
-    fontSize: "1.45rem",
+    fontSize: "1.2rem",
     marginTop: "6px",
   },
-
-  statText: {
-    display: "block",
-    color: "#e3bc3f",
-    fontSize: "1.1rem",
-    marginTop: "8px",
-  },
-
   statHint: {
     display: "block",
     color: "#80776b",
@@ -871,14 +789,12 @@ const styles = {
     marginTop: "4px",
     lineHeight: 1.4,
   },
-
   quickLinks: {
     display: "flex",
     flexWrap: "wrap",
     gap: "10px",
     marginTop: "18px",
   },
-
   quickLink: {
     display: "flex",
     alignItems: "center",
@@ -891,35 +807,30 @@ const styles = {
     fontSize: "0.79rem",
     textDecoration: "none",
   },
-
   sectionCard: {
     background: "#1a1712",
     border: "1px solid rgba(201,162,39,0.2)",
     borderRadius: "5px",
     padding: "28px",
   },
-
   sectionHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: "15px",
   },
-
   sectionEyebrow: {
     color: "#7c5432",
     fontSize: "0.67rem",
     letterSpacing: "0.1em",
     marginBottom: "7px",
   },
-
   sectionTitle: {
     color: "#f3ede0",
     fontSize: "1.18rem",
     fontWeight: 500,
     margin: 0,
   },
-
   editBtn: {
     background: "transparent",
     border: "1px solid rgba(201,162,39,0.4)",
@@ -928,12 +839,10 @@ const styles = {
     borderRadius: "3px",
     cursor: "pointer",
   },
-
   editActions: {
     display: "flex",
     gap: "8px",
   },
-
   saveBtn: {
     background: "#c9a227",
     border: "none",
@@ -943,7 +852,6 @@ const styles = {
     cursor: "pointer",
     fontWeight: 700,
   },
-
   cancelBtn: {
     background: "transparent",
     color: "#a8a094",
@@ -952,20 +860,17 @@ const styles = {
     borderRadius: "3px",
     cursor: "pointer",
   },
-
   message: {
     color: "#e3bc3f",
     fontSize: "0.82rem",
     marginTop: "12px",
   },
-
   infoGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(4, 1fr)",
     gap: "11px",
     marginTop: "20px",
   },
-
   infoCard: {
     display: "flex",
     gap: "10px",
@@ -973,19 +878,16 @@ const styles = {
     background: "#151310",
     border: "1px solid rgba(243,237,224,0.08)",
   },
-
   infoIcon: {
     color: "#c9a227",
     fontSize: "1.1rem",
   },
-
   infoLabel: {
     display: "block",
     color: "#7c5432",
     fontSize: "0.62rem",
     letterSpacing: "0.07em",
   },
-
   infoValue: {
     display: "block",
     color: "#f3ede0",
@@ -994,25 +896,21 @@ const styles = {
     marginTop: "6px",
     wordBreak: "break-word",
   },
-
   editGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(2, 1fr)",
     gap: "12px",
     marginTop: "18px",
   },
-
   field: {
     marginTop: "14px",
   },
-
   label: {
     display: "block",
     color: "#a8a094",
     fontSize: "0.77rem",
     marginBottom: "6px",
   },
-
   input: {
     width: "100%",
     background: "#12110e",
@@ -1023,27 +921,23 @@ const styles = {
     outline: "none",
     fontFamily: "inherit",
   },
-
   setupCard: {
     background: "#1a1712",
     border: "1px solid rgba(201,162,39,0.2)",
     borderRadius: "5px",
     padding: "28px",
   },
-
   setupProgress: {
     color: "#e3bc3f",
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: "0.75rem",
   },
-
   setupGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
+    gridTemplateColumns: "repeat(2, 1fr)",
     gap: "12px",
     marginTop: "20px",
   },
-
   setupStep: {
     display: "flex",
     alignItems: "center",
@@ -1056,12 +950,10 @@ const styles = {
     minHeight: "100px",
     borderRadius: "3px",
   },
-
   setupStepDone: {
     border: "1px solid rgba(201,162,39,0.45)",
     background: "rgba(201,162,39,0.07)",
   },
-
   setupNumber: {
     minWidth: "28px",
     height: "28px",
@@ -1075,52 +967,43 @@ const styles = {
     fontSize: "0.7rem",
     fontFamily: "'IBM Plex Mono', monospace",
   },
-
   setupNumberDone: {
     background: "#c9a227",
     color: "#0b0a08",
   },
-
   setupIcon: {
     color: "#c9a227",
     fontSize: "1.15rem",
   },
-
   setupTextWrap: {
     flex: 1,
   },
-
   setupTitle: {
     display: "block",
     color: "#f3ede0",
     fontSize: "0.85rem",
   },
-
   setupDescription: {
     color: "#8c8377",
     fontSize: "0.72rem",
     lineHeight: 1.45,
     margin: "4px 0 0",
   },
-
   setupArrow: {
     color: "#e3bc3f",
     fontSize: "0.9rem",
   },
-
   listingLayout: {
     display: "grid",
     gridTemplateColumns: "1.2fr 0.8fr",
     gap: "20px",
   },
-
   listingPanel: {
     background: "#1a1712",
     border: "1px solid rgba(201,162,39,0.2)",
     borderRadius: "5px",
     padding: "28px",
   },
-
   addListingCard: {
     height: "fit-content",
     background: "#1a1712",
@@ -1128,39 +1011,33 @@ const styles = {
     borderRadius: "5px",
     padding: "28px",
   },
-
   listingCount: {
     color: "#e3bc3f",
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: "0.72rem",
   },
-
   addDescription: {
     color: "#91887b",
     fontSize: "0.78rem",
     lineHeight: 1.55,
     marginTop: "10px",
   },
-
   emptyListing: {
     color: "#a8a094",
     textAlign: "center",
     padding: "52px 20px",
   },
-
   emptyIcon: {
     display: "block",
     color: "#7c5432",
     fontSize: "2.3rem",
     marginBottom: "10px",
   },
-
   emptyTitle: {
     color: "#f3ede0",
     fontSize: "1.05rem",
     fontWeight: 500,
   },
-
   emptyText: {
     maxWidth: "450px",
     margin: "10px auto 0",
@@ -1168,7 +1045,6 @@ const styles = {
     fontSize: "0.83rem",
     lineHeight: 1.6,
   },
-
   demoPreview: {
     maxWidth: "420px",
     margin: "22px auto 0",
@@ -1177,13 +1053,11 @@ const styles = {
     border: "1px dashed rgba(201,162,39,0.3)",
     textAlign: "left",
   },
-
   demoLabel: {
     color: "#7c5432",
     fontSize: "0.65rem",
     letterSpacing: "0.08em",
   },
-
   demoRow: {
     display: "grid",
     gridTemplateColumns: "1fr auto auto",
@@ -1192,14 +1066,12 @@ const styles = {
     color: "#d8d0c3",
     fontSize: "0.78rem",
   },
-
   listings: {
     display: "flex",
     flexDirection: "column",
     gap: "10px",
     marginTop: "20px",
   },
-
   listingRow: {
     display: "grid",
     gridTemplateColumns: "1.5fr 0.8fr 0.8fr auto",
@@ -1209,13 +1081,11 @@ const styles = {
     border: "1px solid rgba(243,237,224,0.08)",
     padding: "12px",
   },
-
   listingCropWrap: {
     display: "flex",
     alignItems: "center",
     gap: "10px",
   },
-
   cropInitial: {
     width: "32px",
     height: "32px",
@@ -1227,18 +1097,15 @@ const styles = {
     color: "#e3bc3f",
     fontFamily: "'Fraunces', serif",
   },
-
   listingCrop: {
     color: "#f3ede0",
     fontSize: "0.9rem",
   },
-
   listingSubtext: {
     color: "#7e7569",
     fontSize: "0.68rem",
     margin: "3px 0 0",
   },
-
   listingData: {
     display: "flex",
     flexDirection: "column",
@@ -1246,7 +1113,6 @@ const styles = {
     color: "#f3ede0",
     fontSize: "0.77rem",
   },
-
   removeBtn: {
     background: "transparent",
     border: "none",
@@ -1254,13 +1120,11 @@ const styles = {
     cursor: "pointer",
     fontSize: "0.9rem",
   },
-
   twoColumn: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: "10px",
   },
-
   addBtn: {
     width: "100%",
     background: "#c9a227",

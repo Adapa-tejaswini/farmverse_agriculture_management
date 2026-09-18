@@ -25,6 +25,31 @@ const normalizeText = (value) => {
 
 const sameId = (a, b) => Number(a) === Number(b);
 
+const getCurrentStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("farmverse_user") || "{}");
+  } catch {
+    return {};
+  }
+};
+
+const getStoredAccounts = () => {
+  return readData("farmverse_accounts", []);
+};
+
+const getFarmerDisplayName = (farmerId) => {
+  const currentUser = getCurrentStoredUser();
+
+  if (sameId(currentUser?.id, farmerId) && currentUser?.name) {
+    return currentUser.name;
+  }
+
+  const accounts = getStoredAccounts();
+  const account = accounts.find((item) => sameId(item.id, farmerId));
+
+  return account?.name || `Farmer #${farmerId}`;
+};
+
 /* ---------------- BACKEND CONFIG ---------------- */
 
 const API_BASE = "http://localhost:5000/api";
@@ -51,6 +76,14 @@ const authHeaders = () => {
 
   return {
     "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
+
+const authOnlyHeaders = () => {
+  const token = getToken();
+
+  return {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 };
@@ -176,7 +209,11 @@ export const updateFarm = (userId, farmId, updatedFarm) => {
     location: String(updatedFarm.location || currentFarm.location || "").trim(),
   };
 
-  if (!mergedFarm.farmName || !mergedFarm.location || !String(mergedFarm.landSize || "").trim()) {
+  if (
+    !mergedFarm.farmName ||
+    !mergedFarm.location ||
+    !String(mergedFarm.landSize || "").trim()
+  ) {
     throw new Error("Farm name, location, and land size are required.");
   }
 
@@ -187,12 +224,16 @@ export const updateFarm = (userId, farmId, updatedFarm) => {
   const duplicateFarm = farms.find(
     (existingFarm) =>
       !sameId(existingFarm.id, farmId) &&
-      normalizeText(existingFarm.farmName) === normalizeText(mergedFarm.farmName) &&
-      normalizeText(existingFarm.location) === normalizeText(mergedFarm.location)
+      normalizeText(existingFarm.farmName) ===
+        normalizeText(mergedFarm.farmName) &&
+      normalizeText(existingFarm.location) ===
+        normalizeText(mergedFarm.location)
   );
 
   if (duplicateFarm) {
-    throw new Error("Another farm already exists with the same name and location.");
+    throw new Error(
+      "Another farm already exists with the same name and location."
+    );
   }
 
   const newFarms = farms.map((farm) =>
@@ -302,9 +343,12 @@ export const updateCrop = (userId, cropId, updatedCrop) => {
     (existingCrop) =>
       !sameId(existingCrop.id, cropId) &&
       sameId(existingCrop.farmId, mergedCrop.farmId) &&
-      normalizeText(existingCrop.cropName) === normalizeText(mergedCrop.cropName) &&
-      normalizeText(existingCrop.variety) === normalizeText(mergedCrop.variety) &&
-      String(existingCrop.plantingDate || "") === String(mergedCrop.plantingDate)
+      normalizeText(existingCrop.cropName) ===
+        normalizeText(mergedCrop.cropName) &&
+      normalizeText(existingCrop.variety) ===
+        normalizeText(mergedCrop.variety) &&
+      String(existingCrop.plantingDate || "") ===
+        String(mergedCrop.plantingDate)
   );
 
   if (duplicateCrop) {
@@ -345,16 +389,41 @@ export const getListings = (userId) => {
 
 export const addListing = (userId, listing) => {
   const listings = getListings(userId);
+  const crops = getCrops(userId);
+  const farms = getFarms(userId);
+  const currentUser = getCurrentStoredUser();
+
+  const selectedCrop = listing.cropId
+    ? crops.find((crop) => sameId(crop.id, listing.cropId))
+    : null;
+
+  const selectedFarm = selectedCrop
+    ? farms.find((farm) => sameId(farm.id, selectedCrop.farmId))
+    : farms[0];
+
+  const cropName = String(listing.cropName || "").trim();
+  const quantity = Number(listing.quantity || 0);
+  const price = Number(listing.price || 0);
+
+  if (!cropName || quantity <= 0 || price <= 0) {
+    throw new Error("Crop name, quantity, and price are required.");
+  }
 
   const newListing = {
     id: Date.now(),
     farmerId: userId,
+    farmerName:
+      listing.farmerName ||
+      (sameId(currentUser?.id, userId) ? currentUser?.name : "") ||
+      getFarmerDisplayName(userId),
     cropId: listing.cropId ? Number(listing.cropId) : null,
-    cropName: listing.cropName,
-    quantity: listing.quantity,
+    cropName,
+    quantity,
     unit: listing.unit || "kg",
-    price: listing.price,
+    price,
     status: "Active",
+    farmName: selectedFarm?.farmName || currentUser?.farmName || "",
+    location: selectedFarm?.location || currentUser?.location || "",
     createdAt: new Date().toISOString(),
   };
 
@@ -372,6 +441,364 @@ export const deleteListing = (userId, listingId) => {
   );
 };
 
+/* ---------------- MARKETPLACE / BUYER SIDE ---------------- */
+
+export const getMarketplaceListings = () => {
+  const allListings = [];
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+
+    if (!key || !key.startsWith("farmverse_listings_")) continue;
+
+    const farmerId = key.replace("farmverse_listings_", "");
+    const listings = readData(key, []);
+    const farms = getFarms(farmerId);
+    const crops = getCrops(farmerId);
+
+    listings.forEach((listing) => {
+      const status = listing.status || listing.listingStatus || "Active";
+
+      if (status !== "Active") return;
+      if (Number(listing.quantity || 0) <= 0) return;
+
+      const crop = listing.cropId
+        ? crops.find((item) => sameId(item.id, listing.cropId))
+        : null;
+
+      const farm = crop
+        ? farms.find((item) => sameId(item.id, crop.farmId))
+        : farms[0];
+
+      allListings.push({
+        ...listing,
+        farmerId: Number(farmerId) || farmerId,
+        farmerName: listing.farmerName || getFarmerDisplayName(farmerId),
+        farmName: listing.farmName || farm?.farmName || "Farm not added",
+        location: listing.location || farm?.location || "Location not added",
+        cropName: listing.cropName || crop?.cropName || "Crop",
+        quantity: Number(listing.quantity || 0),
+        price: Number(listing.price || 0),
+        unit: listing.unit || "kg",
+        status,
+      });
+    });
+  }
+
+  return allListings.sort(
+    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+  );
+};
+
+export const getBuyerOrders = (buyerId) => {
+  return readData(getKey("buyer_orders", buyerId), []);
+};
+
+export const createBuyerOrder = (buyerId, order) => {
+  const orders = getBuyerOrders(buyerId);
+  const listing = order.listing;
+
+  if (!listing) {
+    throw new Error("Listing is required.");
+  }
+
+  const quantity = Number(order.quantity || 0);
+
+  if (quantity <= 0) {
+    throw new Error("Order quantity must be greater than zero.");
+  }
+
+  if (quantity > Number(listing.quantity || 0)) {
+    throw new Error(`Only ${listing.quantity} ${listing.unit} available.`);
+  }
+
+  const newOrder = {
+    id: Date.now(),
+    buyerId,
+    farmerId: listing.farmerId,
+    farmerName: listing.farmerName || "Farmer",
+    listingId: listing.id,
+    cropName: listing.cropName,
+    quantity,
+    unit: listing.unit || "kg",
+    pricePerUnit: Number(listing.price || 0),
+    totalPrice: quantity * Number(listing.price || 0),
+    deliveryAddress: order.deliveryAddress || "",
+    buyerNote: order.buyerNote || "",
+    status: "Pending",
+    createdAt: new Date().toISOString(),
+  };
+
+  saveData(getKey("buyer_orders", buyerId), [newOrder, ...orders]);
+
+  return newOrder;
+};
+
+export const cancelBuyerOrder = (buyerId, orderId) => {
+  const orders = getBuyerOrders(buyerId);
+
+  const updatedOrders = orders.map((order) =>
+    sameId(order.id, orderId) && order.status === "Pending"
+      ? { ...order, status: "Cancelled" }
+      : order
+  );
+
+  saveData(getKey("buyer_orders", buyerId), updatedOrders);
+
+  return updatedOrders;
+};
+
+/* ---------------- COLLECTIVE SELLING ---------------- */
+
+const getLocationGroup = (location) => {
+  const cleanLocation = String(location || "Unknown location").trim();
+
+  if (!cleanLocation) return "Unknown location";
+
+  return cleanLocation.split(",")[0].trim();
+};
+
+export const getCollectiveLots = () => {
+  const listings = getMarketplaceListings();
+  const groups = {};
+
+  listings.forEach((listing) => {
+    const cropKey = normalizeText(listing.cropName);
+    const locationGroup = getLocationGroup(listing.location);
+    const locationKey = normalizeText(locationGroup);
+    const unitKey = normalizeText(listing.unit || "kg");
+
+    const groupKey = `${cropKey}_${locationKey}_${unitKey}`;
+
+    if (!groups[groupKey]) {
+      groups[groupKey] = {
+        id: groupKey,
+        cropName: listing.cropName,
+        locationGroup,
+        unit: listing.unit || "kg",
+        totalQuantity: 0,
+        totalValue: 0,
+        minPrice: Number(listing.price || 0),
+        maxPrice: Number(listing.price || 0),
+        farmers: [],
+        farmerIds: new Set(),
+        listings: [],
+      };
+    }
+
+    const group = groups[groupKey];
+    const quantity = Number(listing.quantity || 0);
+    const price = Number(listing.price || 0);
+
+    group.totalQuantity += quantity;
+    group.totalValue += quantity * price;
+    group.minPrice = Math.min(group.minPrice, price);
+    group.maxPrice = Math.max(group.maxPrice, price);
+
+    if (!group.farmerIds.has(String(listing.farmerId))) {
+      group.farmerIds.add(String(listing.farmerId));
+      group.farmers.push({
+        farmerId: listing.farmerId,
+        farmerName: listing.farmerName || "Farmer",
+        location: listing.location || "Location not added",
+      });
+    }
+
+    group.listings.push(listing);
+  });
+
+  return Object.values(groups)
+    .map((group) => ({
+      ...group,
+      farmerIds: undefined,
+      farmerCount: group.farmers.length,
+      averagePrice:
+        group.totalQuantity > 0
+          ? Math.round((group.totalValue / group.totalQuantity) * 100) / 100
+          : 0,
+    }))
+    .filter((group) => group.totalQuantity > 0)
+    .sort((a, b) => b.totalQuantity - a.totalQuantity);
+};
+
+export const createCollectiveBuyerOrder = (
+  buyerId,
+  { lot, quantity, deliveryAddress = "", buyerNote = "" }
+) => {
+  if (!lot) {
+    throw new Error("Collective lot is required.");
+  }
+
+  const requestedQuantity = Number(quantity || 0);
+
+  if (requestedQuantity <= 0) {
+    throw new Error("Requested quantity must be greater than zero.");
+  }
+
+  if (requestedQuantity > Number(lot.totalQuantity || 0)) {
+    throw new Error(
+      `Only ${lot.totalQuantity} ${lot.unit} available in this collective lot.`
+    );
+  }
+
+  const orders = getBuyerOrders(buyerId);
+  const groupOrderId = Date.now();
+
+  let remainingQuantity = requestedQuantity;
+
+  const sortedListings = [...lot.listings].sort(
+    (a, b) => Number(a.price || 0) - Number(b.price || 0)
+  );
+
+  const newOrders = [];
+
+  sortedListings.forEach((listing) => {
+    if (remainingQuantity <= 0) return;
+
+    const available = Number(listing.quantity || 0);
+    const assignedQuantity = Math.min(remainingQuantity, available);
+
+    if (assignedQuantity <= 0) return;
+
+    const pricePerUnit = Number(listing.price || 0);
+
+    newOrders.push({
+      id: Date.now() + newOrders.length,
+      groupOrderId,
+      buyerId,
+      farmerId: listing.farmerId,
+      farmerName: listing.farmerName || "Farmer",
+      listingId: listing.id,
+      cropName: listing.cropName,
+      quantity: assignedQuantity,
+      unit: listing.unit || lot.unit || "kg",
+      pricePerUnit,
+      totalPrice: assignedQuantity * pricePerUnit,
+      deliveryAddress,
+      buyerNote,
+      status: "Pending",
+      isCollectiveOrder: true,
+      collectiveCropName: lot.cropName,
+      collectiveLocation: lot.locationGroup,
+      createdAt: new Date().toISOString(),
+    });
+
+    remainingQuantity -= assignedQuantity;
+  });
+
+  if (remainingQuantity > 0) {
+    throw new Error("Could not allocate full quantity from available farmers.");
+  }
+
+  saveData(getKey("buyer_orders", buyerId), [...newOrders, ...orders]);
+
+  return {
+    groupOrderId,
+    orders: newOrders,
+    totalQuantity: requestedQuantity,
+    totalPrice: newOrders.reduce(
+      (total, order) => total + Number(order.totalPrice || 0),
+      0
+    ),
+  };
+};
+
+/* ---------------- VEHICLE SHARING ---------------- */
+
+export const getVehiclePosts = (userId) => {
+  return readData(getKey("vehicle_posts", userId), []);
+};
+
+export const getAllVehiclePosts = () => {
+  const allPosts = [];
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+
+    if (!key || !key.startsWith("farmverse_vehicle_posts_")) continue;
+
+    const userId = key.replace("farmverse_vehicle_posts_", "");
+    const posts = readData(key, []);
+
+    posts.forEach((post) => {
+      if (post.status !== "Closed") {
+        allPosts.push({
+          ...post,
+          ownerId: Number(userId) || userId,
+        });
+      }
+    });
+  }
+
+  return allPosts.sort(
+    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+  );
+};
+
+export const addVehiclePost = (userId, post) => {
+  const posts = getVehiclePosts(userId);
+  const currentUser = getCurrentStoredUser();
+
+  if (!post.postType) {
+    throw new Error("Select post type.");
+  }
+
+  if (!post.vehicleType) {
+    throw new Error("Vehicle type is required.");
+  }
+
+  if (!post.fromLocation) {
+    throw new Error("From location is required.");
+  }
+
+  if (!post.date) {
+    throw new Error("Date is required.");
+  }
+
+  const newPost = {
+    id: Date.now(),
+    ownerId: userId,
+    ownerName: currentUser?.name || "Farmer",
+    ownerPhone: currentUser?.phone || "",
+    postType: post.postType,
+    vehicleType: post.vehicleType,
+    cropName: post.cropName || "",
+    quantity: post.quantity || "",
+    unit: post.unit || "kg",
+    fromLocation: post.fromLocation,
+    toLocation: post.toLocation || "",
+    date: post.date,
+    contactPhone: post.contactPhone || currentUser?.phone || "",
+    notes: post.notes || "",
+    status: "Active",
+    createdAt: new Date().toISOString(),
+  };
+
+  saveData(getKey("vehicle_posts", userId), [newPost, ...posts]);
+
+  return newPost;
+};
+
+export const deleteVehiclePost = (userId, postId) => {
+  const posts = getVehiclePosts(userId);
+
+  saveData(
+    getKey("vehicle_posts", userId),
+    posts.filter((post) => !sameId(post.id, postId))
+  );
+};
+
+export const closeVehiclePost = (userId, postId) => {
+  const posts = getVehiclePosts(userId);
+
+  const updatedPosts = posts.map((post) =>
+    sameId(post.id, postId) ? { ...post, status: "Closed" } : post
+  );
+
+  saveData(getKey("vehicle_posts", userId), updatedPosts);
+
+  return updatedPosts;
+};
 /* ---------------- PREDICTIONS ---------------- */
 
 export const getPredictions = (userId) => {
@@ -395,7 +822,7 @@ export const savePrediction = (userId, prediction) => {
 
 /* ---------------- CHATBOT API ---------------- */
 
-export const sendChatMessage = async (message) => {
+export const sendChatMessage = async (message, language = "en-IN") => {
   const token = getToken();
 
   if (!token) {
@@ -407,7 +834,59 @@ export const sendChatMessage = async (message) => {
   const response = await fetch(`${API_BASE}/chatbot/message`, {
     method: "POST",
     headers: authHeaders(),
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({
+      message,
+      language,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || data.message || `Server error: ${response.status}`
+    );
+  }
+
+  return data;
+};
+
+export const sendLeafImageMessage = async ({
+  message,
+  image,
+  farmId = null,
+  cropId = null,
+  language = "en-IN",
+} = {}) => {
+  const token = getToken();
+
+  if (!token) {
+    throw new Error(
+      "You are not logged in to the server. Please sign out and sign in again."
+    );
+  }
+
+  if (!image) {
+    throw new Error("Please select a leaf or crop image.");
+  }
+
+  const formData = new FormData();
+  formData.append("message", message || "");
+  formData.append("image", image);
+  formData.append("language", language);
+
+  if (farmId) {
+    formData.append("farmId", farmId);
+  }
+
+  if (cropId) {
+    formData.append("cropId", cropId);
+  }
+
+  const response = await fetch(`${API_BASE}/chatbot/leaf-image`, {
+    method: "POST",
+    headers: authOnlyHeaders(),
+    body: formData,
   });
 
   const data = await response.json().catch(() => ({}));

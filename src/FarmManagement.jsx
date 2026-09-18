@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { addFarm, deleteFarm, getFarms, updateFarm } from "./api.js";
 
 const FARM_IMAGE =
@@ -49,7 +50,11 @@ const FarmManagement = ({ user }) => {
     setMessage("");
     setMessageType("success");
 
-    if (!formData.farmName.trim() || !formData.location.trim() || !formData.landSize) {
+    if (
+      !formData.farmName.trim() ||
+      !formData.location.trim() ||
+      !formData.landSize
+    ) {
       setMessageType("error");
       setMessage("Farm name, location, and land size are required.");
       return;
@@ -115,14 +120,20 @@ const FarmManagement = ({ user }) => {
     <main style={styles.page}>
       <div style={styles.container}>
         <section style={styles.hero}>
-          <img src={FARM_IMAGE} alt="Green farm field" style={styles.heroImage} />
+          <img
+            src={FARM_IMAGE}
+            alt="Green farm field"
+            style={styles.heroImage}
+          />
           <div style={styles.heroOverlay} />
 
           <div style={styles.heroContent}>
             <p className="mono" style={styles.eyebrow}>
               FARM MANAGEMENT
             </p>
+
             <h1 style={styles.title}>Keep every field on record.</h1>
+
             <p style={styles.subtitle}>
               Add farm locations, land size, irrigation methods, and farming
               details for every field you manage.
@@ -134,6 +145,7 @@ const FarmManagement = ({ user }) => {
               <span>FARMS</span>
               <strong>{farms.length}</strong>
             </div>
+
             <div>
               <span>LAND AREA</span>
               <strong>{totalLand} acres</strong>
@@ -282,6 +294,7 @@ const FarmManagement = ({ user }) => {
                 <p className="mono" style={styles.cardEyebrow}>
                   REGISTERED FARMS
                 </p>
+
                 <h2 style={styles.sectionTitle}>
                   {farms.length} {farms.length === 1 ? "farm" : "farms"} on
                   record
@@ -328,6 +341,13 @@ const FarmManagement = ({ user }) => {
                     </div>
 
                     <div style={styles.cardButtons}>
+                      <Link
+                        to={`/crop-recommendation?farmId=${farm.id}`}
+                        style={styles.recommendBtn}
+                      >
+                        Recommend crops
+                      </Link>
+
                       <button
                         style={styles.editBtn}
                         onClick={() => handleEdit(farm)}
@@ -444,7 +464,6 @@ const styles = {
     gridTemplateColumns: "minmax(320px, 0.9fr) minmax(390px, 1.1fr)",
     gap: "20px",
   },
-
   formCard: {
     background: "#1a1712",
     border: "1px solid rgba(201,162,39,0.2)",
@@ -468,8 +487,18 @@ const styles = {
     letterSpacing: "0.1em",
     marginBottom: "7px",
   },
-  sectionTitle: { color: "#f3ede0", fontSize: "1.18rem", fontWeight: 500, margin: 0 },
-  formHint: { color: "#8d8579", fontSize: "0.78rem", lineHeight: 1.5, marginTop: "11px" },
+  sectionTitle: {
+    color: "#f3ede0",
+    fontSize: "1.18rem",
+    fontWeight: 500,
+    margin: 0,
+  },
+  formHint: {
+    color: "#8d8579",
+    fontSize: "0.78rem",
+    lineHeight: 1.5,
+    marginTop: "11px",
+  },
   message: {
     color: "#e3bc3f",
     fontSize: "0.84rem",
@@ -487,7 +516,12 @@ const styles = {
     lineHeight: 1.5,
   },
   field: { marginTop: "16px" },
-  label: { display: "block", color: "#a8a094", fontSize: "0.79rem", marginBottom: "6px" },
+  label: {
+    display: "block",
+    color: "#a8a094",
+    fontSize: "0.79rem",
+    marginBottom: "6px",
+  },
   input: {
     width: "100%",
     background: "#12110e",
@@ -498,8 +532,16 @@ const styles = {
     outline: "none",
     fontFamily: "inherit",
   },
-  twoColumn: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" },
-  buttonRow: { display: "flex", gap: "10px", marginTop: "26px" },
+  twoColumn: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "12px",
+  },
+  buttonRow: {
+    display: "flex",
+    gap: "10px",
+    marginTop: "26px",
+  },
   primaryBtn: {
     background: "#c9a227",
     color: "#0b0a08",
@@ -517,10 +559,24 @@ const styles = {
     padding: "11px 17px",
     cursor: "pointer",
   },
-
-  empty: { color: "#a8a094", textAlign: "center", padding: "80px 15px", lineHeight: 1.6 },
-  emptyIcon: { display: "block", color: "#7c5432", fontSize: "2.4rem", marginBottom: "10px" },
-  farmList: { display: "flex", flexDirection: "column", gap: "12px", marginTop: "22px" },
+  empty: {
+    color: "#a8a094",
+    textAlign: "center",
+    padding: "80px 15px",
+    lineHeight: 1.6,
+  },
+  emptyIcon: {
+    display: "block",
+    color: "#7c5432",
+    fontSize: "2.4rem",
+    marginBottom: "10px",
+  },
+  farmList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    marginTop: "22px",
+  },
   farmCard: {
     background: "#151310",
     border: "1px solid rgba(243,237,224,0.1)",
@@ -539,8 +595,17 @@ const styles = {
     background: "rgba(201,162,39,0.1)",
     borderRadius: "3px",
   },
-  farmName: { color: "#f3ede0", fontSize: "1.06rem", fontWeight: 500, margin: 0 },
-  location: { color: "#a8a094", fontSize: "0.78rem", margin: "5px 0 0" },
+  farmName: {
+    color: "#f3ede0",
+    fontSize: "1.06rem",
+    fontWeight: 500,
+    margin: 0,
+  },
+  location: {
+    color: "#a8a094",
+    fontSize: "0.78rem",
+    margin: "5px 0 0",
+  },
   landBadge: {
     color: "#e3bc3f",
     border: "1px solid rgba(201,162,39,0.35)",
@@ -550,7 +615,12 @@ const styles = {
     fontFamily: "'IBM Plex Mono', monospace",
     whiteSpace: "nowrap",
   },
-  farmInfo: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginTop: "17px" },
+  farmInfo: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: "8px",
+    marginTop: "17px",
+  },
   infoBox: {
     display: "flex",
     flexDirection: "column",
@@ -560,7 +630,23 @@ const styles = {
     color: "#a8a094",
     fontSize: "0.67rem",
   },
-  cardButtons: { display: "flex", justifyContent: "flex-end", gap: "9px", marginTop: "17px" },
+  cardButtons: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "9px",
+    marginTop: "17px",
+    flexWrap: "wrap",
+  },
+  recommendBtn: {
+    background: "rgba(201,162,39,0.12)",
+    border: "1px solid rgba(201,162,39,0.45)",
+    color: "#e3bc3f",
+    padding: "7px 11px",
+    borderRadius: "2px",
+    cursor: "pointer",
+    textDecoration: "none",
+    fontSize: "0.78rem",
+  },
   editBtn: {
     background: "transparent",
     border: "1px solid rgba(201,162,39,0.42)",

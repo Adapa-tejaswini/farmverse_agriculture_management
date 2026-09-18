@@ -10,9 +10,82 @@ const IMAGES = {
     "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1000&q=85",
 };
 
+const features = [
+  {
+    no: "01",
+    title: "Farm Records",
+    text: "Farmers can save farm name, location, land size, soil type, irrigation method, and farming practice.",
+    linkText: "Manage farms",
+    path: "/farm-management",
+    icon: "🌾",
+    farmerOnly: true,
+  },
+  {
+    no: "02",
+    title: "Crop Tracking",
+    text: "Track planting dates, crop stages, expected harvest dates, yield, and soil nutrient values.",
+    linkText: "Track crops",
+    path: "/crop-management",
+    icon: "☘️",
+    farmerOnly: true,
+  },
+  {
+    no: "03",
+    title: "Local Marketplace",
+    text: "Buyers can discover fresh produce listings added by farmers and request orders.",
+    linkText: "Open marketplace",
+    path: "/marketplace",
+    icon: "▣",
+    farmerOnly: false,
+  },
+];
+
+const aiTools = [
+  {
+    title: "Fertilizer Guidance",
+    text: "Get safe nutrient guidance using crop stage, soil pH, and NPK values.",
+    path: "/fertilizer",
+    icon: "🧪",
+  },
+  {
+    title: "Crop Advisor",
+    text: "Find suitable crops based on season, soil, irrigation, and water availability.",
+    path: "/crop-recommendation",
+    icon: "🌱",
+  },
+  {
+    title: "Disease Scan",
+    text: "Upload a leaf image to detect possible pest, disease, or deficiency symptoms.",
+    path: "/disease-detection",
+    icon: "🔍",
+  },
+  {
+    title: "Smart Alerts",
+    text: "View farm reminders for harvest, crop stage, soil data, weather checks, and schemes.",
+    path: "/notifications",
+    icon: "🔔",
+  },
+];
+
 const Home = ({ user }) => {
   const destination =
-    user?.role === "farmer" ? "/dashboard" : user ? "/profile" : "/register";
+    user?.role === "farmer" ? "/dashboard" : user ? "/marketplace" : "/register";
+
+  const getFeaturePath = (feature) => {
+    if (!user) return "/register";
+
+    if (feature.farmerOnly && user.role !== "farmer") {
+      return "/marketplace";
+    }
+
+    return feature.path;
+  };
+
+  const getToolPath = (path) => {
+    if (!user) return "/register";
+    if (user.role !== "farmer") return "/marketplace";
+    return path;
+  };
 
   return (
     <main>
@@ -22,30 +95,35 @@ const Home = ({ user }) => {
           alt="Green agricultural field"
           style={styles.heroImage}
         />
-
         <div style={styles.heroOverlay} />
 
         <div style={styles.heroContent}>
           <p className="mono" style={styles.eyebrow}>
-            FARMVERSE · PRECISION AGRICULTURE MANAGEMENT
+            FARMVERSE · SMART FARM MANAGEMENT
           </p>
 
           <h1 style={styles.heroTitle}>
-            Every field.
+            Grow smarter.
             <br />
-            Every crop.
+            Sell better.
             <br />
-            One clear record.
+            Buy fresher.
           </h1>
 
           <p style={styles.heroText}>
-            Farmverse helps farmers manage farms, track crops, plan harvests,
-            and list fresh produce for local buyers.
+            Farmverse helps farmers manage farms, track crops, use AI guidance,
+            scan leaf images, list produce, and helps buyers discover fresh
+            local harvests.
           </p>
 
           <div style={styles.buttonRow}>
             <Link to={destination} style={styles.primaryBtn}>
-              {user ? "Open my workspace" : "Start your farm record"} →
+              {user
+                ? user.role === "farmer"
+                  ? "Open my workspace"
+                  : "Open marketplace"
+                : "Start with Farmverse"}{" "}
+              →
             </Link>
 
             {!user && (
@@ -58,22 +136,23 @@ const Home = ({ user }) => {
           <div style={styles.heroPoints}>
             <span>✓ Farm records</span>
             <span>✓ Crop tracking</span>
-            <span>✓ Harvest listings</span>
+            <span>✓ Produce marketplace</span>
+            <span>✓ AI guidance</span>
           </div>
         </div>
 
         <div style={styles.heroBottom}>
           <div>
             <span className="mono">01</span>
-            <p>Manage fields</p>
+            <p>Manage farms</p>
           </div>
           <div>
             <span className="mono">02</span>
-            <p>Track crops</p>
+            <p>List produce</p>
           </div>
           <div>
             <span className="mono">03</span>
-            <p>List harvests</p>
+            <p>Buy fresh crops</p>
           </div>
         </div>
       </section>
@@ -81,17 +160,18 @@ const Home = ({ user }) => {
       <section style={styles.intro}>
         <div style={styles.container}>
           <p className="mono" style={styles.sectionEyebrow}>
-            FARMING MADE ORGANIZED
+            FARMING AND MARKETPLACE MADE SIMPLE
           </p>
 
           <div style={styles.introGrid}>
             <h2 style={styles.sectionTitle}>
-              Your farm does not need complicated software.
+              One place for farmers to manage records and buyers to find fresh produce.
             </h2>
 
             <p style={styles.introText}>
-              Start with the details you already know: your farm location, land
-              size, crops, season, water availability, and harvest plans.
+              Farmers can record farms, crops, harvest plans, and produce
+              listings. Buyers can browse available crops, compare quantity and
+              price, and request orders from local farmers.
             </p>
           </div>
         </div>
@@ -102,53 +182,59 @@ const Home = ({ user }) => {
       <section style={styles.cardsSection}>
         <div style={styles.container}>
           <div style={styles.cards}>
-            <article style={styles.card}>
-              <span className="mono" style={styles.cardNo}>
-                01 / FARM
-              </span>
-              <h3 style={styles.cardTitle}>Keep every field on record.</h3>
-              <p style={styles.cardText}>
-                Add farm location, land size, irrigation method, soil type, and
-                farming practice.
-              </p>
-              <Link
-                to={user ? "/farm-management" : "/register"}
-                style={styles.cardLink}
-              >
-                Manage farms →
-              </Link>
-            </article>
+            {features.map((feature) => (
+              <article key={feature.no} style={styles.card}>
+                <div style={styles.cardIcon}>{feature.icon}</div>
 
-            <article style={styles.card}>
-              <span className="mono" style={styles.cardNo}>
-                02 / CROP
-              </span>
-              <h3 style={styles.cardTitle}>Follow each crop season.</h3>
-              <p style={styles.cardText}>
-                Track planting dates, crop stages, expected harvest, and
-                estimated production.
-              </p>
-              <Link
-                to={user ? "/crop-management" : "/register"}
-                style={styles.cardLink}
-              >
-                Track crops →
-              </Link>
-            </article>
+                <span className="mono" style={styles.cardNo}>
+                  {feature.no} / FARMVERSE
+                </span>
 
-            <article style={styles.card}>
-              <span className="mono" style={styles.cardNo}>
-                03 / MARKET
-              </span>
-              <h3 style={styles.cardTitle}>Sell what is ready.</h3>
-              <p style={styles.cardText}>
-                Add produce quantity and price so local buyers know what is
-                available from your farm.
+                <h3 style={styles.cardTitle}>{feature.title}</h3>
+
+                <p style={styles.cardText}>{feature.text}</p>
+
+                <Link to={getFeaturePath(feature)} style={styles.cardLink}>
+                  {feature.linkText} →
+                </Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section style={styles.aiSection}>
+        <div style={styles.container}>
+          <div style={styles.sectionHeader}>
+            <div>
+              <p className="mono" style={styles.sectionEyebrow}>
+                AI FARM TOOLS
               </p>
-              <Link to={user ? "/profile" : "/register"} style={styles.cardLink}>
-                View listings →
+
+              <h2 style={styles.sectionTitle}>
+                Tools for crop decisions, fertilizer, leaf problems, and farm alerts.
+              </h2>
+            </div>
+
+            <Link
+              to={user?.role === "farmer" ? "/assistant" : user ? "/marketplace" : "/register"}
+              style={styles.textLink}
+            >
+              {user?.role === "farmer" ? "Try AI assistant" : "Open marketplace"} →
+            </Link>
+          </div>
+
+          <div style={styles.aiGrid}>
+            {aiTools.map((tool) => (
+              <Link key={tool.title} to={getToolPath(tool.path)} style={styles.aiCard}>
+                <span style={styles.aiIcon}>{tool.icon}</span>
+                <h3>{tool.title}</h3>
+                <p>{tool.text}</p>
+                <span style={styles.aiLink}>
+                  {user?.role === "farmer" ? "Open tool" : "For farmers"} →
+                </span>
               </Link>
-            </article>
+            ))}
           </div>
         </div>
       </section>
@@ -175,22 +261,27 @@ const Home = ({ user }) => {
               </p>
 
               <h2 style={styles.sectionTitle}>
-                From planting day to harvest day.
+                From planting day to selling day.
               </h2>
 
               <p style={styles.splitText}>
                 Add farms, create crop records, update crop stages, estimate
-                yield, and prepare produce listings when your harvest is ready.
+                yield, scan leaves, get fertilizer guidance, and list produce
+                when harvest is ready.
               </p>
 
               <div style={styles.checkList}>
                 <p>✓ Multiple farm and field records</p>
                 <p>✓ Crop growth and harvest planning</p>
-                <p>✓ Soil values optional, not compulsory</p>
+                <p>✓ Fertilizer and crop recommendation tools</p>
+                <p>✓ Produce listings for buyers</p>
               </div>
 
-              <Link to={destination} style={styles.textLink}>
-                {user ? "Open workspace" : "Create your record"} →
+              <Link
+                to={user?.role === "farmer" ? "/dashboard" : "/register"}
+                style={styles.textLink}
+              >
+                {user?.role === "farmer" ? "Open workspace" : "Create farmer account"} →
               </Link>
             </div>
           </div>
@@ -219,14 +310,26 @@ const Home = ({ user }) => {
               </p>
 
               <h2 style={styles.sectionTitle}>
-                Know where your food comes from.
+                Buy fresh produce directly from farmers.
               </h2>
 
               <p style={styles.splitText}>
-                Farmverse connects farm produce records with local buyers.
-                Farmers can list quantity and price while buyers can discover
-                fresh produce from real farms.
+                Buyers can browse available produce listings, check quantity,
+                price, farmer location, and create order requests.
               </p>
+
+              <div style={styles.checkList}>
+                <p>✓ Browse crop listings</p>
+                <p>✓ Search by crop and location</p>
+                <p>✓ Request quantity from farmers</p>
+              </div>
+
+              <Link
+                to={user?.role === "user" ? "/marketplace" : "/register"}
+                style={styles.textLink}
+              >
+                {user?.role === "user" ? "Open marketplace" : "Create buyer account"} →
+              </Link>
             </div>
           </div>
         </div>
@@ -234,17 +337,24 @@ const Home = ({ user }) => {
 
       <section style={styles.cta}>
         <p className="mono" style={styles.sectionEyebrow}>
-          FARMVERSE · GROW WITH CLARITY
+          FARMVERSE · GROW AND TRADE WITH CLARITY
         </p>
 
         <h2 style={styles.ctaTitle}>
-          Start with one farm.
+          Farmers manage.
           <br />
-          Keep growing from there.
+          Buyers discover.
+          <br />
+          Harvests move faster.
         </h2>
 
         <Link to={destination} style={styles.primaryBtn}>
-          {user ? "Go to Farmverse" : "Create free account"} →
+          {user
+            ? user.role === "farmer"
+              ? "Go to workspace"
+              : "Go to marketplace"
+            : "Create free account"}{" "}
+          →
         </Link>
       </section>
     </main>
@@ -275,7 +385,7 @@ const styles = {
   heroContent: {
     position: "relative",
     zIndex: 1,
-    maxWidth: "680px",
+    maxWidth: "720px",
     padding: "65px 48px 105px",
   },
   eyebrow: {
@@ -292,7 +402,7 @@ const styles = {
   },
   heroText: {
     color: "#d5cbbb",
-    maxWidth: "520px",
+    maxWidth: "560px",
     fontSize: "1.03rem",
     lineHeight: 1.7,
     marginTop: "20px",
@@ -339,9 +449,10 @@ const styles = {
     padding: "17px 48px",
     background: "rgba(9,8,6,0.8)",
     borderTop: "1px solid rgba(201,162,39,0.22)",
+    color: "#d8d0c3",
   },
   intro: {
-    padding: "95px 30px",
+    padding: "90px 30px",
   },
   container: {
     maxWidth: "1120px",
@@ -362,7 +473,7 @@ const styles = {
   },
   sectionTitle: {
     color: "#f3ede0",
-    fontSize: "2.4rem",
+    fontSize: "2.25rem",
     fontWeight: 500,
     lineHeight: 1.2,
   },
@@ -382,12 +493,17 @@ const styles = {
   card: {
     display: "flex",
     flexDirection: "column",
-    minHeight: "260px",
+    minHeight: "285px",
     background: "#1a1712",
     border: "1px solid rgba(243,237,224,0.1)",
     borderTop: "2px solid rgba(201,162,39,0.6)",
     padding: "26px",
     borderRadius: "4px",
+  },
+  cardIcon: {
+    color: "#e3bc3f",
+    fontSize: "1.7rem",
+    marginBottom: "15px",
   },
   cardNo: {
     color: "#7c5432",
@@ -397,7 +513,7 @@ const styles = {
     color: "#f3ede0",
     fontSize: "1.25rem",
     fontWeight: 500,
-    marginTop: "20px",
+    marginTop: "18px",
   },
   cardText: {
     color: "#a8a094",
@@ -409,6 +525,45 @@ const styles = {
     textDecoration: "none",
     fontSize: "0.83rem",
     fontWeight: 600,
+    marginTop: "auto",
+  },
+  aiSection: {
+    padding: "85px 30px",
+    background: "#151310",
+    borderTop: "1px solid rgba(201,162,39,0.16)",
+    borderBottom: "1px solid rgba(201,162,39,0.16)",
+  },
+  sectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    gap: "25px",
+    marginBottom: "28px",
+  },
+  aiGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: "14px",
+  },
+  aiCard: {
+    background: "#1a1712",
+    border: "1px solid rgba(201,162,39,0.18)",
+    borderRadius: "5px",
+    padding: "22px",
+    textDecoration: "none",
+    color: "#f3ede0",
+    minHeight: "225px",
+    display: "flex",
+    flexDirection: "column",
+  },
+  aiIcon: {
+    fontSize: "1.55rem",
+    marginBottom: "14px",
+  },
+  aiLink: {
+    color: "#e3bc3f",
+    fontSize: "0.78rem",
+    fontWeight: 700,
     marginTop: "auto",
   },
   splitSection: {
@@ -443,7 +598,7 @@ const styles = {
     color: "#f3ede0",
   },
   splitContent: {
-    maxWidth: "480px",
+    maxWidth: "500px",
   },
   splitText: {
     color: "#a8a094",
@@ -472,7 +627,7 @@ const styles = {
   },
   ctaTitle: {
     color: "#f3ede0",
-    fontSize: "2.9rem",
+    fontSize: "2.8rem",
     fontWeight: 500,
     lineHeight: 1.15,
     marginBottom: "30px",

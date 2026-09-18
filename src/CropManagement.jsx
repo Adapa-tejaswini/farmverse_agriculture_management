@@ -66,7 +66,11 @@ const CropManagement = ({ user }) => {
     setMessage("");
     setMessageType("success");
 
-    if (!formData.farmId || !formData.cropName.trim() || !formData.plantingDate) {
+    if (
+      !formData.farmId ||
+      !formData.cropName.trim() ||
+      !formData.plantingDate
+    ) {
       setMessageType("error");
       setMessage("Select a farm, enter crop name, and add planting date.");
       return;
@@ -134,6 +138,7 @@ const CropManagement = ({ user }) => {
           <p className="mono" style={styles.eyebrow}>
             CROP MANAGEMENT
           </p>
+
           <h1 style={styles.title}>Add a farm before adding crops.</h1>
 
           <section style={styles.notice}>
@@ -143,6 +148,7 @@ const CropManagement = ({ user }) => {
               A crop must be connected to a farm or field. Create your farm
               record first, then come back to add crops.
             </p>
+
             <Link to="/farm-management" style={styles.primaryBtn}>
               Go to farm management →
             </Link>
@@ -156,14 +162,20 @@ const CropManagement = ({ user }) => {
     <main style={styles.page}>
       <div style={styles.container}>
         <section style={styles.hero}>
-          <img src={CROP_IMAGE} alt="Growing crop field" style={styles.heroImage} />
+          <img
+            src={CROP_IMAGE}
+            alt="Growing crop field"
+            style={styles.heroImage}
+          />
           <div style={styles.heroOverlay} />
 
           <div style={styles.heroContent}>
             <p className="mono" style={styles.eyebrow}>
               CROP MANAGEMENT
             </p>
+
             <h1 style={styles.title}>Follow every crop season.</h1>
+
             <p style={styles.subtitle}>
               Record planting, crop stage, harvest planning, and expected yield.
               Soil test values are optional.
@@ -175,6 +187,7 @@ const CropManagement = ({ user }) => {
               <span>CROP RECORDS</span>
               <strong>{crops.length}</strong>
             </div>
+
             <div>
               <span>FARMS AVAILABLE</span>
               <strong>{farms.length}</strong>
@@ -189,10 +202,12 @@ const CropManagement = ({ user }) => {
                 <p className="mono" style={styles.cardEyebrow}>
                   {editingId ? "EDIT CROP" : "NEW CROP RECORD"}
                 </p>
+
                 <h2 style={styles.sectionTitle}>
                   {editingId ? "Update crop details" : "Add a crop to your farm"}
                 </h2>
               </div>
+
               <span style={styles.formIcon}>☘</span>
             </div>
 
@@ -211,6 +226,7 @@ const CropManagement = ({ user }) => {
             <form onSubmit={handleSubmit}>
               <div style={styles.field}>
                 <label style={styles.label}>Farm *</label>
+
                 <select
                   name="farmId"
                   value={formData.farmId}
@@ -234,6 +250,7 @@ const CropManagement = ({ user }) => {
                   onChange={handleChange}
                   placeholder="Example: Tomato"
                 />
+
                 <Field
                   label="Variety"
                   name="variety"
@@ -246,6 +263,7 @@ const CropManagement = ({ user }) => {
               <div style={styles.twoColumn}>
                 <div style={styles.field}>
                   <label style={styles.label}>Season</label>
+
                   <select
                     name="season"
                     value={formData.season}
@@ -277,6 +295,7 @@ const CropManagement = ({ user }) => {
                   value={formData.plantingDate}
                   onChange={handleChange}
                 />
+
                 <Field
                   label="Expected harvest"
                   type="date"
@@ -289,6 +308,7 @@ const CropManagement = ({ user }) => {
               <div style={styles.twoColumn}>
                 <div style={styles.field}>
                   <label style={styles.label}>Growth stage</label>
+
                   <select
                     name="growthStage"
                     value={formData.growthStage}
@@ -305,6 +325,7 @@ const CropManagement = ({ user }) => {
 
                 <div style={styles.field}>
                   <label style={styles.label}>Crop status</label>
+
                   <select
                     name="cropStatus"
                     value={formData.cropStatus}
@@ -337,8 +358,11 @@ const CropManagement = ({ user }) => {
                 >
                   <span>
                     <strong>Soil and nutrient details</strong>
-                    <small>Optional — add only if you have a soil test report</small>
+                    <small>
+                      Optional — add only if you have a soil test report
+                    </small>
                   </span>
+
                   <span style={styles.plus}>{showSoilDetails ? "−" : "+"}</span>
                 </button>
 
@@ -358,6 +382,7 @@ const CropManagement = ({ user }) => {
                         onChange={handleChange}
                         placeholder="6.5"
                       />
+
                       <Field
                         label="Nitrogen (N)"
                         type="number"
@@ -366,6 +391,7 @@ const CropManagement = ({ user }) => {
                         onChange={handleChange}
                         placeholder="90"
                       />
+
                       <Field
                         label="Phosphorus (P)"
                         type="number"
@@ -374,6 +400,7 @@ const CropManagement = ({ user }) => {
                         onChange={handleChange}
                         placeholder="42"
                       />
+
                       <Field
                         label="Potassium (K)"
                         type="number"
@@ -409,6 +436,7 @@ const CropManagement = ({ user }) => {
             <p className="mono" style={styles.cardEyebrow}>
               CROP RECORDS
             </p>
+
             <h2 style={styles.sectionTitle}>
               {crops.length} {crops.length === 1 ? "crop" : "crops"} on record
             </h2>
@@ -449,18 +477,25 @@ const CropManagement = ({ user }) => {
                         <span>
                           <strong>Season:</strong> {crop.season || "Not set"}
                         </span>
+
                         <span>
-                          <strong>Stage:</strong> {crop.growthStage || "Not set"}
+                          <strong>Stage:</strong>{" "}
+                          {crop.growthStage || "Not set"}
                         </span>
+
                         <span>
                           <strong>Area:</strong> {crop.fieldArea || "0"} acres
                         </span>
+
                         <span>
-                          <strong>Yield:</strong> {crop.estimatedYield || "0"} kg
+                          <strong>Yield:</strong> {crop.estimatedYield || "0"}{" "}
+                          kg
                         </span>
+
                         <span>
                           <strong>Planting:</strong> {crop.plantingDate}
                         </span>
+
                         <span>
                           <strong>Harvest:</strong>{" "}
                           {crop.expectedHarvestDate || "Not set"}
@@ -480,6 +515,20 @@ const CropManagement = ({ user }) => {
                       )}
 
                       <div style={styles.cardButtons}>
+                        <Link
+                          to={`/fertilizer?cropId=${crop.id}`}
+                          style={styles.recommendBtn}
+                        >
+                          Fertilizer
+                        </Link>
+
+                        <Link
+                          to={`/disease-detection?cropId=${crop.id}`}
+                          style={styles.scanBtn}
+                        >
+                          Disease scan
+                        </Link>
+
                         <button
                           style={styles.editBtn}
                           onClick={() => handleEdit(crop)}
@@ -595,7 +644,12 @@ const styles = {
     letterSpacing: "0.1em",
     marginBottom: "7px",
   },
-  sectionTitle: { color: "#f3ede0", fontSize: "1.18rem", fontWeight: 500, margin: 0 },
+  sectionTitle: {
+    color: "#f3ede0",
+    fontSize: "1.18rem",
+    fontWeight: 500,
+    margin: 0,
+  },
   formIcon: { color: "#c9a227", fontSize: "1.5rem" },
   message: {
     color: "#e3bc3f",
@@ -614,7 +668,12 @@ const styles = {
     lineHeight: 1.5,
   },
   field: { marginTop: "16px" },
-  label: { display: "block", color: "#a8a094", fontSize: "0.78rem", marginBottom: "6px" },
+  label: {
+    display: "block",
+    color: "#a8a094",
+    fontSize: "0.78rem",
+    marginBottom: "6px",
+  },
   input: {
     width: "100%",
     background: "#12110e",
@@ -625,8 +684,16 @@ const styles = {
     outline: "none",
     fontFamily: "inherit",
   },
-  twoColumn: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" },
-  fourColumn: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "9px" },
+  twoColumn: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "12px",
+  },
+  fourColumn: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: "9px",
+  },
   soilSection: {
     marginTop: "23px",
     border: "1px solid rgba(201,162,39,0.18)",
@@ -685,9 +752,24 @@ const styles = {
   },
   noticeIcon: { color: "#c9a227", fontSize: "2rem" },
   noticeTitle: { color: "#f3ede0", fontWeight: 500 },
-  empty: { color: "#a8a094", textAlign: "center", padding: "80px 15px", lineHeight: 1.6 },
-  emptyIcon: { display: "block", color: "#7c5432", fontSize: "2.5rem", marginBottom: "10px" },
-  cropList: { marginTop: "22px", display: "flex", flexDirection: "column", gap: "12px" },
+  empty: {
+    color: "#a8a094",
+    textAlign: "center",
+    padding: "80px 15px",
+    lineHeight: 1.6,
+  },
+  emptyIcon: {
+    display: "block",
+    color: "#7c5432",
+    fontSize: "2.5rem",
+    marginBottom: "10px",
+  },
+  cropList: {
+    marginTop: "22px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  },
   cropCard: {
     background: "#151310",
     border: "1px solid rgba(243,237,224,0.1)",
@@ -737,7 +819,33 @@ const styles = {
     padding: "9px",
     background: "rgba(201,162,39,0.06)",
   },
-  cardButtons: { display: "flex", justifyContent: "flex-end", gap: "9px", marginTop: "17px" },
+  cardButtons: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "9px",
+    marginTop: "17px",
+    flexWrap: "wrap",
+  },
+  recommendBtn: {
+    background: "rgba(201,162,39,0.12)",
+    border: "1px solid rgba(201,162,39,0.45)",
+    color: "#e3bc3f",
+    padding: "7px 11px",
+    borderRadius: "2px",
+    cursor: "pointer",
+    textDecoration: "none",
+    fontSize: "0.78rem",
+  },
+  scanBtn: {
+    background: "rgba(224,122,79,0.08)",
+    border: "1px solid rgba(224,122,79,0.35)",
+    color: "#ffc1a6",
+    padding: "7px 11px",
+    borderRadius: "2px",
+    cursor: "pointer",
+    textDecoration: "none",
+    fontSize: "0.78rem",
+  },
   editBtn: {
     background: "transparent",
     color: "#e3bc3f",

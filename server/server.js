@@ -10,17 +10,24 @@ const cropRoutes = require("./routes/cropRoutes");
 const weatherRoutes = require("./routes/weatherRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const chatbotRoutes = require("./routes/chatbotRoutes");
+
+const fertilizerRoutes = require("./routes/fertilizerRoutes");
+const cropAdvisorRoutes = require("./routes/cropAdvisorRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const schemeRoutes = require("./routes/schemeRoutes");
+const diseaseRoutes = require("./routes/diseaseRoutes");
+
 const app = express();
 
 app.use(
   cors({
     origin: "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 app.get("/", (req, res) => {
   res.json({
@@ -49,13 +56,23 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-/* API routes */
+/* ---------------- API ROUTES ---------------- */
+
 app.use("/api/auth", authRoutes);
 app.use("/api/farms", farmRoutes);
 app.use("/api/crops", cropRoutes);
 app.use("/api/weather", weatherRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/chatbot", chatbotRoutes);
+
+app.use("/api/fertilizer", fertilizerRoutes);
+app.use("/api/crop-advisor", cropAdvisorRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/schemes", schemeRoutes);
+app.use("/api/disease", diseaseRoutes);
+
+/* ---------------- 404 HANDLER ---------------- */
+
 app.use((req, res) => {
   res.status(404).json({
     message: "Route not found.",

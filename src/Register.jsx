@@ -75,7 +75,7 @@ const Register = ({ onRegister }) => {
       });
 
       onRegister(data.user);
-      navigate(data.user.role === "farmer" ? "/dashboard" : "/profile");
+      navigate(data.user.role === "farmer" ? "/dashboard" : "/marketplace");
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
     } finally {

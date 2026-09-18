@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getCrops, getFarms, getListings, getPredictions } from "./api.js";
 
@@ -17,9 +17,94 @@ const getGrowthProgress = (stage) => {
   return stages[stage] || 10;
 };
 
-const getStageLabel = (stage) => {
-  if (!stage) return "Planning stage";
-  return stage;
+const daysUntil = (dateValue) => {
+  if (!dateValue) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const target = new Date(dateValue);
+  target.setHours(0, 0, 0, 0);
+
+  return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+};
+
+const buildDashboardAlerts = ({ farms, crops }) => {
+  const alerts = [];
+
+  if (farms.length === 0) {
+    alerts.push({
+      type: "Setup",
+      title: "Add your first farm",
+      text: "Create a farm record with location, land area, soil type, and irrigation details.",
+      path: "/farm-management",
+      priority: "high",
+    });
+  }
+
+  if (farms.length > 0 && crops.length === 0) {
+    alerts.push({
+      type: "Setup",
+      title: "Add crop records",
+      text: "Add active crops to receive crop stage, fertilizer, harvest, and disease guidance.",
+      path: "/crop-management",
+      priority: "high",
+    });
+  }
+
+  crops.forEach((crop) => {
+    const harvestDays = daysUntil(crop.expectedHarvestDate);
+
+    if (
+      harvestDays !== null &&
+      harvestDays >= 0 &&
+      harvestDays <= 7 &&
+      crop.cropStatus !== "Harvested"
+    ) {
+      alerts.push({
+        type: "Harvest",
+        title: `${crop.cropName} harvest reminder`,
+        text:
+          harvestDays === 0
+            ? "Expected harvest is today. Check crop maturity before harvesting."
+            : `Expected harvest is in ${harvestDays} day(s). Prepare labor, crates, storage, and market plan.`,
+        path: "/crop-management",
+        priority: "high",
+      });
+    }
+
+    if (crop.growthStage === "Flowering") {
+      alerts.push({
+        type: "Crop stage",
+        title: `${crop.cropName} is flowering`,
+        text: "Maintain stable moisture and monitor flower drop, thrips, and fungal signs.",
+        path: `/fertilizer?cropId=${crop.id}`,
+        priority: "medium",
+      });
+    }
+
+    if (crop.growthStage === "Fruiting") {
+      alerts.push({
+        type: "Crop stage",
+        title: `${crop.cropName} is fruiting`,
+        text: "Check fruit borer, spots, nutrient stress, and irrigation consistency.",
+        path: `/disease-detection?cropId=${crop.id}`,
+        priority: "medium",
+      });
+    }
+
+    if (!crop.soilPh && !crop.nitrogen && !crop.phosphorus && !crop.potassium) {
+      alerts.push({
+        type: "Fertilizer",
+        title: `Soil data missing for ${crop.cropName}`,
+        text: "Add soil pH and NPK values from a Soil Health Card for better fertilizer guidance.",
+        path: `/fertilizer?cropId=${crop.id}`,
+        priority: "medium",
+      });
+    }
+  });
+
+  return alerts.slice(0, 5);
 };
 
 const FarmerDashboard = ({ user }) => {
@@ -35,18 +120,24 @@ const FarmerDashboard = ({ user }) => {
     setCrops(getCrops(user.id));
     setListings(getListings(user.id));
     setPredictions(getPredictions(user.id));
-  }, [user]);
+  }, [user?.id]);
+
+  const activeCrops = crops.filter((crop) => crop.cropStatus !== "Harvested");
 
   const totalYield = crops.reduce(
     (total, crop) => total + Number(crop.estimatedYield || 0),
     0
   );
 
-  const activeCrops = crops.filter(
-    (crop) => crop.cropStatus !== "Harvested"
-  ).length;
+  const totalLand = farms.reduce(
+    (total, farm) => total + Number(farm.landSize || 0),
+    0
+  );
 
-  const latestPrediction = predictions[0];
+  const alerts = useMemo(
+    () => buildDashboardAlerts({ farms, crops }),
+    [farms, crops]
+  );
 
   const currentDate = new Date().toLocaleDateString("en-IN", {
     weekday: "long",
@@ -56,18 +147,58 @@ const FarmerDashboard = ({ user }) => {
   });
 
   const recentCrops = crops.slice(0, 4);
+  const recentPredictions = predictions.slice(0, 3);
+
+  const quickActions = [
+    {
+      no: "01",
+      title: "Manage farms",
+      text: "Add fields, land area, location, irrigation, and soil type.",
+      path: "/farm-management",
+      icon: "🌾",
+    },
+    {
+      no: "02",
+      title: "Manage crops",
+      text: "Track crop stages, planting dates, yield, and harvest plans.",
+      path: "/crop-management",
+      icon: "☘️",
+    },
+    {
+      no: "03",
+      title: "Fertilizer guidance",
+      text: "Use soil pH and NPK values to get safe nutrient guidance.",
+      path: "/fertilizer",
+      icon: "🧪",
+    },
+    {
+      no: "04",
+      title: "Disease scan",
+      text: "Upload a leaf image to detect possible pest or disease signs.",
+      path: "/disease-detection",
+      icon: "🔍",
+    },
+    {
+      no: "05",
+      title: "Crop advisor",
+      text: "Get crop suggestions based on season, soil, and water.",
+      path: "/crop-recommendation",
+      icon: "🌱",
+    },
+    {
+      no: "06",
+      title: "AI assistant",
+      text: "Ask questions using text, image, or voice input.",
+      path: "/assistant",
+      icon: "✦",
+    },
+  ];
 
   return (
     <main style={styles.page}>
       <div style={styles.container}>
-        {/* Hero Dashboard Banner */}
         <section style={styles.hero}>
-          <img
-            src={DASHBOARD_IMAGE}
-            alt="Agricultural field"
-            style={styles.heroImage}
-          />
-
+          <img src={DASHBOARD_IMAGE} alt="Agricultural field" style={styles.heroImage} />
           <div style={styles.heroOverlay} />
 
           <div style={styles.heroContent}>
@@ -81,7 +212,7 @@ const FarmerDashboard = ({ user }) => {
               </h1>
 
               <p style={styles.subtitle}>
-                Here is what is happening across your fields today.
+                Your farms, crops, AI tools, harvest plans, and alerts are ready.
               </p>
 
               <p style={styles.date}>
@@ -90,8 +221,8 @@ const FarmerDashboard = ({ user }) => {
             </div>
 
             <div style={styles.heroActions}>
-              <Link to="/farm-management" style={styles.heroSecondaryBtn}>
-                Manage farms
+              <Link to="/notifications" style={styles.heroSecondaryBtn}>
+                View alerts
               </Link>
 
               <Link to="/crop-management" style={styles.heroPrimaryBtn}>
@@ -102,24 +233,24 @@ const FarmerDashboard = ({ user }) => {
 
           <div style={styles.heroFooter}>
             <span>
-              <strong>{farms.length}</strong> farms registered
+              <strong>{farms.length}</strong> farms
             </span>
             <span>
-              <strong>{activeCrops}</strong> active crops
+              <strong>{activeCrops.length}</strong> active crops
             </span>
             <span>
-              <strong>{listings.length}</strong> produce listings
+              <strong>{alerts.length}</strong> smart alerts
             </span>
           </div>
         </section>
 
-        {/* Overview */}
         <section style={styles.overviewSection}>
           <div style={styles.sectionTop}>
             <div>
               <p className="mono" style={styles.sectionEyebrow}>
                 FARM OVERVIEW
               </p>
+
               <h2 style={styles.sectionTitle}>This season at a glance</h2>
             </div>
 
@@ -127,62 +258,23 @@ const FarmerDashboard = ({ user }) => {
           </div>
 
           <div style={styles.statsGrid}>
-            <article style={styles.statCard}>
-              <div style={styles.statIcon}>⌖</div>
-              <div>
-                <span className="mono" style={styles.statLabel}>
-                  TOTAL FARMS
-                </span>
-                <strong style={styles.statValue}>{farms.length}</strong>
-                <p style={styles.statHint}>Fields on your record</p>
-              </div>
-            </article>
-
-            <article style={styles.statCard}>
-              <div style={styles.statIcon}>☘</div>
-              <div>
-                <span className="mono" style={styles.statLabel}>
-                  ACTIVE CROPS
-                </span>
-                <strong style={styles.statValue}>{activeCrops}</strong>
-                <p style={styles.statHint}>Currently in progress</p>
-              </div>
-            </article>
-
-            <article style={styles.statCard}>
-              <div style={styles.statIcon}>▣</div>
-              <div>
-                <span className="mono" style={styles.statLabel}>
-                  PRODUCE LISTINGS
-                </span>
-                <strong style={styles.statValue}>{listings.length}</strong>
-                <p style={styles.statHint}>Available for buyers</p>
-              </div>
-            </article>
-
-            <article style={styles.statCard}>
-              <div style={styles.statIcon}>↗</div>
-              <div>
-                <span className="mono" style={styles.statLabel}>
-                  ESTIMATED YIELD
-                </span>
-                <strong style={styles.statValue}>{totalYield} kg</strong>
-                <p style={styles.statHint}>Across recorded crops</p>
-              </div>
-            </article>
+            <StatCard icon="🌾" label="TOTAL FARMS" value={farms.length} hint={`${totalLand} acres recorded`} />
+            <StatCard icon="☘️" label="ACTIVE CROPS" value={activeCrops.length} hint="Currently in progress" />
+            <StatCard icon="▣" label="LISTINGS" value={listings.length} hint="Produce ready for buyers" />
+            <StatCard icon="↗" label="EST. YIELD" value={`${totalYield} kg`} hint="Across recorded crops" />
           </div>
         </section>
 
         <div className="furrow" style={{ margin: "35px 0" }} />
 
         <section style={styles.mainGrid}>
-          {/* Crop Overview */}
           <article style={styles.largePanel}>
             <div style={styles.panelHeader}>
               <div>
                 <p className="mono" style={styles.panelEyebrow}>
                   FIELD ACTIVITY
                 </p>
+
                 <h2 style={styles.panelTitle}>Your crop season</h2>
               </div>
 
@@ -192,22 +284,19 @@ const FarmerDashboard = ({ user }) => {
             </div>
 
             {recentCrops.length === 0 ? (
-              <div style={styles.emptyState}>
-                <span style={styles.emptyIcon}>☘</span>
-                <h3>No crops on record yet.</h3>
-                <p>
-                  Add your first crop to track planting dates, growth stages,
-                  yield, and harvest planning.
-                </p>
-
-                <Link to="/crop-management" style={styles.emptyButton}>
-                  Add first crop →
-                </Link>
-              </div>
+              <EmptyState
+                icon="☘️"
+                title="No crops on record yet."
+                text="Add your first crop to track planting dates, growth stages, yield, and harvest planning."
+                path="/crop-management"
+                linkText="Add first crop"
+              />
             ) : (
               <div style={styles.cropList}>
                 {recentCrops.map((crop) => {
-                  const farm = farms.find((item) => item.id === crop.farmId);
+                  const farm = farms.find(
+                    (item) => Number(item.id) === Number(crop.farmId)
+                  );
                   const progress = getGrowthProgress(crop.growthStage);
 
                   return (
@@ -232,7 +321,7 @@ const FarmerDashboard = ({ user }) => {
                             {crop.cropStatus || "Planted"}
                           </span>
                           <span style={styles.cropStage}>
-                            {getStageLabel(crop.growthStage)}
+                            {crop.growthStage || "Planning"}
                           </span>
                         </div>
                       </div>
@@ -259,10 +348,13 @@ const FarmerDashboard = ({ user }) => {
 
                         <span>
                           Harvest:{" "}
-                          <strong>
-                            {crop.expectedHarvestDate || "Not set"}
-                          </strong>
+                          <strong>{crop.expectedHarvestDate || "Not set"}</strong>
                         </span>
+                      </div>
+
+                      <div style={styles.cropActions}>
+                        <Link to={`/fertilizer?cropId=${crop.id}`}>Fertilizer</Link>
+                        <Link to={`/disease-detection?cropId=${crop.id}`}>Disease scan</Link>
                       </div>
                     </div>
                   );
@@ -271,8 +363,38 @@ const FarmerDashboard = ({ user }) => {
             )}
           </article>
 
-          {/* Weather and Recommendation */}
           <aside style={styles.sideColumn}>
+            <article style={styles.alertCard}>
+              <div style={styles.panelHeader}>
+                <div>
+                  <p className="mono" style={styles.panelEyebrow}>
+                    SMART NOTIFICATIONS
+                  </p>
+                  <h2 style={styles.panelTitle}>Farm alerts</h2>
+                </div>
+
+                <Link to="/notifications" style={styles.panelLink}>
+                  Open →
+                </Link>
+              </div>
+
+              {alerts.length === 0 ? (
+                <p style={styles.alertEmpty}>
+                  No urgent alerts. Add farm and crop records to generate smart reminders.
+                </p>
+              ) : (
+                <div style={styles.alertList}>
+                  {alerts.map((alert, index) => (
+                    <Link key={`${alert.title}-${index}`} to={alert.path} style={styles.alertItem}>
+                      <span style={styles.alertType}>{alert.type}</span>
+                      <strong>{alert.title}</strong>
+                      <p>{alert.text}</p>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </article>
+
             <article style={styles.weatherCard}>
               <div style={styles.weatherTop}>
                 <div>
@@ -305,68 +427,52 @@ const FarmerDashboard = ({ user }) => {
                 </div>
               </div>
 
-              <p style={styles.weatherNote}>
-                Demo weather data. Connect Open-Meteo or OpenWeatherMap for
-                live local weather.
-              </p>
+              <Link to="/weather" style={styles.weatherLink}>
+                Open weather forecast →
+              </Link>
             </article>
 
             <article style={styles.recommendationCard}>
               <div style={styles.panelHeader}>
                 <div>
                   <p className="mono" style={styles.panelEyebrow}>
-                    FARM ADVISOR
+                    RECENT AI RESULTS
                   </p>
-                  <h2 style={styles.panelTitle}>Crop guidance</h2>
+                  <h2 style={styles.panelTitle}>Saved guidance</h2>
                 </div>
 
                 <Link to="/prediction" style={styles.panelLink}>
-                  Open →
+                  History →
                 </Link>
               </div>
 
-              {latestPrediction ? (
+              {recentPredictions.length === 0 ? (
                 <div style={styles.advisorContent}>
-                  <div style={styles.advisorIcon}>☘</div>
-
-                  <p style={styles.advisorLabel}>LATEST SUGGESTION</p>
-
-                  <h3 style={styles.advisorCrop}>
-                    {latestPrediction.result}
+                  <div style={styles.advisorIcon}>✦</div>
+                  <h3 style={styles.advisorEmptyTitle}>
+                    Try your AI tools
                   </h3>
-
                   <p style={styles.advisorText}>
-                    Your latest crop recommendation is saved in Farmverse.
-                    Open the advisor to view details and run another suggestion.
+                    Use crop advisor, fertilizer guidance, disease scan, or AI assistant.
                   </p>
-
-                  <Link to="/prediction" style={styles.advisorButton}>
-                    View recommendation →
+                  <Link to="/assistant" style={styles.advisorButton}>
+                    Open AI assistant →
                   </Link>
                 </div>
               ) : (
-                <div style={styles.advisorContent}>
-                  <div style={styles.advisorIcon}>⌁</div>
-
-                  <h3 style={styles.advisorEmptyTitle}>
-                    Need help choosing a crop?
-                  </h3>
-
-                  <p style={styles.advisorText}>
-                    Use your season, water availability, and location to get
-                    simple crop suggestions. Soil values are optional.
-                  </p>
-
-                  <Link to="/prediction" style={styles.advisorButton}>
-                    Try crop advisor →
-                  </Link>
+                <div style={styles.predictionList}>
+                  {recentPredictions.map((prediction) => (
+                    <div key={prediction.id} style={styles.predictionItem}>
+                      <span>{prediction.predictionType || "Prediction"}</span>
+                      <strong>{prediction.result}</strong>
+                    </div>
+                  ))}
                 </div>
               )}
             </article>
           </aside>
         </section>
 
-        {/* Quick actions */}
         <section style={styles.quickSection}>
           <div style={styles.sectionTop}>
             <div>
@@ -378,37 +484,15 @@ const FarmerDashboard = ({ user }) => {
           </div>
 
           <div style={styles.quickGrid}>
-            <Link to="/farm-management" style={styles.actionCard}>
-              <span style={styles.actionNumber}>01</span>
-              <span style={styles.actionIcon}>⌖</span>
-              <h3>Manage farms</h3>
-              <p>Add fields, land area, location, irrigation, and soil type.</p>
-              <span style={styles.actionLink}>Open farms →</span>
-            </Link>
-
-            <Link to="/crop-management" style={styles.actionCard}>
-              <span style={styles.actionNumber}>02</span>
-              <span style={styles.actionIcon}>☘</span>
-              <h3>Manage crops</h3>
-              <p>Track crop stages, planting dates, yield, and harvest plans.</p>
-              <span style={styles.actionLink}>Open crops →</span>
-            </Link>
-
-            <Link to="/profile" style={styles.actionCard}>
-              <span style={styles.actionNumber}>03</span>
-              <span style={styles.actionIcon}>▣</span>
-              <h3>Produce listings</h3>
-              <p>Add fresh produce and set quantity and price for buyers.</p>
-              <span style={styles.actionLink}>Open profile →</span>
-            </Link>
-
-            <Link to="/prediction" style={styles.actionCard}>
-              <span style={styles.actionNumber}>04</span>
-              <span style={styles.actionIcon}>⌁</span>
-              <h3>Crop advisor</h3>
-              <p>Get simple crop suggestions based on local field conditions.</p>
-              <span style={styles.actionLink}>Open advisor →</span>
-            </Link>
+            {quickActions.map((action) => (
+              <Link key={action.no} to={action.path} style={styles.actionCard}>
+                <span style={styles.actionNumber}>{action.no}</span>
+                <span style={styles.actionIcon}>{action.icon}</span>
+                <h3>{action.title}</h3>
+                <p>{action.text}</p>
+                <span style={styles.actionLink}>Open →</span>
+              </Link>
+            ))}
           </div>
         </section>
       </div>
@@ -416,28 +500,49 @@ const FarmerDashboard = ({ user }) => {
   );
 };
 
+const StatCard = ({ icon, label, value, hint }) => (
+  <article style={styles.statCard}>
+    <div style={styles.statIcon}>{icon}</div>
+    <div>
+      <span className="mono" style={styles.statLabel}>
+        {label}
+      </span>
+      <strong style={styles.statValue}>{value}</strong>
+      <p style={styles.statHint}>{hint}</p>
+    </div>
+  </article>
+);
+
+const EmptyState = ({ icon, title, text, path, linkText }) => (
+  <div style={styles.emptyState}>
+    <span style={styles.emptyIcon}>{icon}</span>
+    <h3>{title}</h3>
+    <p>{text}</p>
+    <Link to={path} style={styles.emptyButton}>
+      {linkText} →
+    </Link>
+  </div>
+);
+
 const styles = {
   page: {
     minHeight: "calc(100vh - 65px)",
     padding: "38px 20px 60px",
   },
-
   container: {
     width: "100%",
     maxWidth: "1180px",
     margin: "0 auto",
   },
-
   hero: {
     position: "relative",
-    minHeight: "290px",
+    minHeight: "300px",
     overflow: "hidden",
     borderRadius: "7px",
     border: "1px solid rgba(201,162,39,0.24)",
     display: "flex",
     alignItems: "center",
   },
-
   heroImage: {
     position: "absolute",
     inset: 0,
@@ -445,14 +550,12 @@ const styles = {
     height: "100%",
     objectFit: "cover",
   },
-
   heroOverlay: {
     position: "absolute",
     inset: 0,
     background:
       "linear-gradient(90deg, rgba(11,10,8,0.95) 8%, rgba(11,10,8,0.78) 50%, rgba(11,10,8,0.24) 100%)",
   },
-
   heroContent: {
     position: "relative",
     zIndex: 1,
@@ -463,40 +566,34 @@ const styles = {
     justifyContent: "space-between",
     gap: "25px",
   },
-
   eyebrow: {
     color: "#d9b538",
     fontSize: "0.7rem",
     letterSpacing: "0.14em",
     marginBottom: "11px",
   },
-
   title: {
     color: "#f7f1e7",
     fontSize: "2.25rem",
     fontWeight: 500,
     lineHeight: 1.18,
   },
-
   subtitle: {
     color: "#d3cabb",
     marginTop: "9px",
     lineHeight: 1.55,
-    maxWidth: "520px",
+    maxWidth: "550px",
   },
-
   date: {
     color: "#a99f91",
     fontSize: "0.78rem",
     marginTop: "16px",
   },
-
   heroActions: {
     display: "flex",
     gap: "10px",
     flexWrap: "wrap",
   },
-
   heroPrimaryBtn: {
     background: "#c9a227",
     color: "#0b0a08",
@@ -507,7 +604,6 @@ const styles = {
     fontSize: "0.85rem",
     whiteSpace: "nowrap",
   },
-
   heroSecondaryBtn: {
     color: "#f3ede0",
     textDecoration: "none",
@@ -517,7 +613,6 @@ const styles = {
     fontSize: "0.85rem",
     whiteSpace: "nowrap",
   },
-
   heroFooter: {
     position: "absolute",
     zIndex: 2,
@@ -532,11 +627,9 @@ const styles = {
     color: "#b6ac9d",
     fontSize: "0.77rem",
   },
-
   overviewSection: {
     paddingTop: "32px",
   },
-
   sectionTop: {
     display: "flex",
     alignItems: "flex-end",
@@ -544,31 +637,26 @@ const styles = {
     gap: "20px",
     marginBottom: "17px",
   },
-
   sectionEyebrow: {
     color: "#7c5432",
     fontSize: "0.67rem",
     letterSpacing: "0.11em",
     marginBottom: "7px",
   },
-
   sectionTitle: {
     color: "#f3ede0",
     fontSize: "1.35rem",
     fontWeight: 500,
   },
-
   updatedText: {
     color: "#756d62",
     fontSize: "0.76rem",
   },
-
   statsGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(4, 1fr)",
     gap: "14px",
   },
-
   statCard: {
     display: "flex",
     alignItems: "flex-start",
@@ -578,108 +666,92 @@ const styles = {
     borderRadius: "4px",
     padding: "19px",
   },
-
   statIcon: {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    minWidth: "34px",
-    height: "34px",
+    minWidth: "38px",
+    height: "38px",
     background: "rgba(201,162,39,0.1)",
     border: "1px solid rgba(201,162,39,0.2)",
     color: "#d9b538",
     borderRadius: "3px",
-    fontSize: "1.05rem",
+    fontSize: "1.25rem",
   },
-
   statLabel: {
     color: "#92897d",
     fontSize: "0.63rem",
     letterSpacing: "0.07em",
   },
-
   statValue: {
     display: "block",
     color: "#f3ede0",
     fontFamily: "'IBM Plex Mono', monospace",
-    fontSize: "1.52rem",
+    fontSize: "1.35rem",
     fontWeight: 500,
     marginTop: "6px",
   },
-
   statHint: {
     color: "#70685d",
     fontSize: "0.72rem",
     margin: "4px 0 0",
   },
-
   mainGrid: {
     display: "grid",
-    gridTemplateColumns: "1.25fr 0.75fr",
+    gridTemplateColumns: "1.15fr 0.85fr",
     gap: "18px",
   },
-
   largePanel: {
     background: "#1a1712",
     border: "1px solid rgba(201,162,39,0.18)",
     borderRadius: "5px",
     padding: "27px",
   },
-
   sideColumn: {
     display: "flex",
     flexDirection: "column",
     gap: "18px",
   },
-
   panelHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: "16px",
   },
-
   panelEyebrow: {
     color: "#7c5432",
     fontSize: "0.66rem",
     letterSpacing: "0.1em",
     marginBottom: "7px",
   },
-
   panelTitle: {
     color: "#f3ede0",
     fontSize: "1.16rem",
     fontWeight: 500,
   },
-
   panelLink: {
     color: "#e3bc3f",
     textDecoration: "none",
     fontSize: "0.78rem",
     whiteSpace: "nowrap",
   },
-
   cropList: {
     marginTop: "18px",
   },
-
   cropRow: {
     padding: "16px 0",
     borderBottom: "1px solid rgba(243,237,224,0.08)",
   },
-
   cropTopRow: {
     display: "flex",
     justifyContent: "space-between",
     gap: "15px",
   },
-
   cropInfo: {
     display: "flex",
     alignItems: "center",
     gap: "11px",
   },
-
   cropAvatar: {
     display: "flex",
     alignItems: "center",
@@ -692,27 +764,23 @@ const styles = {
     fontFamily: "'Fraunces', serif",
     fontSize: "1rem",
   },
-
   cropName: {
     color: "#f3ede0",
     fontSize: "0.98rem",
     fontWeight: 500,
     margin: 0,
   },
-
   cropMeta: {
     color: "#8d8579",
     fontSize: "0.74rem",
     margin: "4px 0 0",
   },
-
   cropStatusWrap: {
     display: "flex",
     flexDirection: "column",
     alignItems: "flex-end",
     gap: "4px",
   },
-
   statusBadge: {
     color: "#e3bc3f",
     border: "1px solid rgba(201,162,39,0.36)",
@@ -720,12 +788,10 @@ const styles = {
     padding: "3px 8px",
     fontSize: "0.67rem",
   },
-
   cropStage: {
     color: "#756d62",
     fontSize: "0.7rem",
   },
-
   progressMeta: {
     display: "flex",
     justifyContent: "space-between",
@@ -733,7 +799,6 @@ const styles = {
     fontSize: "0.7rem",
     marginTop: "14px",
   },
-
   progressTrack: {
     width: "100%",
     height: "5px",
@@ -742,13 +807,11 @@ const styles = {
     overflow: "hidden",
     marginTop: "6px",
   },
-
   progressFill: {
     height: "100%",
     background: "linear-gradient(90deg, #8d6f20, #d9b538)",
     borderRadius: "10px",
   },
-
   cropFooter: {
     display: "flex",
     justifyContent: "space-between",
@@ -758,7 +821,43 @@ const styles = {
     fontSize: "0.72rem",
     marginTop: "11px",
   },
-
+  cropActions: {
+    display: "flex",
+    gap: "12px",
+    marginTop: "12px",
+    fontSize: "0.75rem",
+  },
+  alertCard: {
+    background: "#1a1712",
+    border: "1px solid rgba(201,162,39,0.18)",
+    borderRadius: "5px",
+    padding: "24px",
+  },
+  alertEmpty: {
+    color: "#a8a094",
+    fontSize: "0.8rem",
+    lineHeight: 1.55,
+    marginTop: "15px",
+  },
+  alertList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    marginTop: "16px",
+  },
+  alertItem: {
+    background: "#151310",
+    border: "1px solid rgba(243,237,224,0.08)",
+    borderLeft: "3px solid rgba(201,162,39,0.65)",
+    padding: "12px",
+    textDecoration: "none",
+    color: "#f3ede0",
+  },
+  alertType: {
+    color: "#e3bc3f",
+    fontSize: "0.65rem",
+    textTransform: "uppercase",
+  },
   weatherCard: {
     background:
       "linear-gradient(135deg, rgba(61,51,27,0.52), rgba(26,23,18,1) 72%)",
@@ -766,25 +865,22 @@ const styles = {
     borderRadius: "5px",
     padding: "24px",
   },
-
   weatherTop: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-
   weatherIcon: {
     color: "#e3bc3f",
     fontSize: "1.6rem",
   },
-
   weatherMain: {
     display: "flex",
     alignItems: "baseline",
     gap: "10px",
     marginTop: "17px",
+    color: "#f3ede0",
   },
-
   weatherGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
@@ -792,64 +888,44 @@ const styles = {
     borderTop: "1px solid rgba(243,237,224,0.1)",
     marginTop: "19px",
     paddingTop: "16px",
+    color: "#a8a094",
+    fontSize: "0.75rem",
   },
-
-  weatherNote: {
-    color: "#7d7569",
-    fontSize: "0.65rem",
-    lineHeight: 1.45,
-    margin: "16px 0 0",
+  weatherLink: {
+    display: "inline-block",
+    color: "#e3bc3f",
+    textDecoration: "none",
+    fontSize: "0.78rem",
+    marginTop: "18px",
   },
-
   recommendationCard: {
     background: "#1a1712",
     border: "1px solid rgba(201,162,39,0.18)",
     borderRadius: "5px",
     padding: "24px",
   },
-
   advisorContent: {
     marginTop: "17px",
     padding: "17px",
     background: "rgba(201,162,39,0.06)",
     border: "1px solid rgba(201,162,39,0.13)",
   },
-
   advisorIcon: {
     color: "#d9b538",
     fontSize: "1.45rem",
   },
-
-  advisorLabel: {
-    color: "#8d8579",
-    fontFamily: "'IBM Plex Mono', monospace",
-    fontSize: "0.64rem",
-    letterSpacing: "0.08em",
-    marginTop: "13px",
-  },
-
-  advisorCrop: {
-    color: "#e3bc3f",
-    fontSize: "1.45rem",
-    fontWeight: 500,
-    margin: "7px 0",
-    textTransform: "capitalize",
-  },
-
   advisorEmptyTitle: {
     color: "#f3ede0",
     fontSize: "1rem",
     fontWeight: 500,
     margin: "12px 0 0",
   },
-
   advisorText: {
     color: "#a8a094",
     fontSize: "0.78rem",
     lineHeight: 1.55,
     marginTop: "9px",
   },
-
   advisorButton: {
     display: "inline-block",
     color: "#e3bc3f",
@@ -858,20 +934,30 @@ const styles = {
     fontWeight: 600,
     marginTop: "14px",
   },
-
+  predictionList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "9px",
+    marginTop: "15px",
+  },
+  predictionItem: {
+    background: "#151310",
+    border: "1px solid rgba(243,237,224,0.08)",
+    padding: "12px",
+    color: "#e3bc3f",
+    fontSize: "0.78rem",
+  },
   emptyState: {
     textAlign: "center",
     padding: "60px 25px 35px",
     color: "#a8a094",
   },
-
   emptyIcon: {
     display: "block",
     color: "#7c5432",
     fontSize: "2.4rem",
     marginBottom: "10px",
   },
-
   emptyButton: {
     display: "inline-block",
     marginTop: "13px",
@@ -879,17 +965,14 @@ const styles = {
     textDecoration: "none",
     fontSize: "0.84rem",
   },
-
   quickSection: {
     marginTop: "35px",
   },
-
   quickGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
+    gridTemplateColumns: "repeat(3, 1fr)",
     gap: "14px",
   },
-
   actionCard: {
     position: "relative",
     minHeight: "205px",
@@ -902,7 +985,6 @@ const styles = {
     color: "#f3ede0",
     textDecoration: "none",
   },
-
   actionNumber: {
     position: "absolute",
     top: "15px",
@@ -911,12 +993,10 @@ const styles = {
     fontFamily: "'IBM Plex Mono', monospace",
     fontSize: "0.68rem",
   },
-
   actionIcon: {
     color: "#d9b538",
     fontSize: "1.45rem",
   },
-
   actionLink: {
     color: "#e3bc3f",
     fontSize: "0.76rem",
