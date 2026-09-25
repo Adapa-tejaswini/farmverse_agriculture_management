@@ -13,17 +13,19 @@ const uniqueModels = (models) => {
 
 const TEXT_MODELS = uniqueModels([
   process.env.GEMINI_TEXT_MODEL,
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
   "gemini-3.6-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
+  "gemini-3.5-flash",
 ]);
 
 const VISION_MODELS = uniqueModels([
   process.env.GEMINI_VISION_MODEL,
   process.env.GEMINI_TEXT_MODEL,
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
   "gemini-3.6-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
+  "gemini-3.5-flash",
 ]);
 
 const LANGUAGE_NAMES = {
@@ -190,7 +192,11 @@ const shouldTryNextModel = (error) => {
   );
 };
 
-const generateWithFallback = async ({ models, contents, systemInstruction }) => {
+const generateWithFallback = async ({
+  models,
+  contents,
+  systemInstruction,
+}) => {
   let lastError = null;
 
   for (const modelName of models) {
@@ -229,22 +235,55 @@ const generateWithFallback = async ({ models, contents, systemInstruction }) => 
 
 /*
   Important:
-  Your frontend farms/crops are currently localStorage-based.
-  Backend PostgreSQL may not have the same farmId/cropId.
-  This prevents foreign key errors.
+  Frontend farms/crops can contain localStorage-generated IDs.
+  Those IDs can be very large values such as:
+
+  1788338679846
+
+  PostgreSQL INTEGER only supports:
+
+  -2147483648 to 2147483647
+
+  Therefore, validate IDs BEFORE sending them to PostgreSQL.
 */
-const getValidRecordRefs = async ({ userId, farmId = null, cropId = null }) => {
+
+const getValidRecordRefs = async ({
+  userId,
+  farmId = null,
+  cropId = null,
+}) => {
   let validFarmId = null;
   let validCropId = null;
   let cropName = null;
   let growthStage = null;
 
-  if (cropId) {
+  /*
+    Check whether a value can safely be used
+    with a PostgreSQL INTEGER column.
+  */
+  const isValidPostgresInteger = (value) => {
+    if (value === null || value === undefined || value === "") {
+      return false;
+    }
+
+    const number = Number(value);
+
+    return (
+      Number.isInteger(number) &&
+      number >= -2147483648 &&
+      number <= 2147483647
+    );
+  };
+
+  /*
+    Check crop ID only when it is a valid PostgreSQL INTEGER.
+  */
+  if (isValidPostgresInteger(cropId)) {
     const cropCheck = await pool.query(
       `SELECT id, farm_id, crop_name, growth_stage
        FROM crops
        WHERE id = $1 AND farmer_id = $2`,
-      [cropId, userId]
+      [Number(cropId), userId]
     );
 
     if (cropCheck.rows[0]) {
@@ -255,12 +294,15 @@ const getValidRecordRefs = async ({ userId, farmId = null, cropId = null }) => {
     }
   }
 
-  if (!validFarmId && farmId) {
+  /*
+    Check farm ID only when it is a valid PostgreSQL INTEGER.
+  */
+  if (!validFarmId && isValidPostgresInteger(farmId)) {
     const farmCheck = await pool.query(
       `SELECT id
        FROM farms
        WHERE id = $1 AND farmer_id = $2`,
-      [farmId, userId]
+      [Number(farmId), userId]
     );
 
     if (farmCheck.rows[0]) {
@@ -308,7 +350,8 @@ const sendMessage = async (req, res) => {
     const farmerContext = await getFarmerContext(userId);
 
     await pool.query(
-      `INSERT INTO chatbot_messages (user_id, farm_id, crop_id, sender, message)
+      `INSERT INTO chatbot_messages
+       (user_id, farm_id, crop_id, sender, message)
        VALUES ($1, $2, $3, 'user', $4)`,
       [userId, validFarmId, validCropId, message.trim()]
     );
@@ -329,7 +372,8 @@ ${message.trim()}
     const reply = aiResult.text;
 
     await pool.query(
-      `INSERT INTO chatbot_messages (user_id, farm_id, crop_id, sender, message)
+      `INSERT INTO chatbot_messages
+       (user_id, farm_id, crop_id, sender, message)
        VALUES ($1, $2, $3, 'assistant', $4)`,
       [userId, validFarmId, validCropId, reply]
     );
@@ -379,12 +423,16 @@ const analyzeLeafImage = async (req, res) => {
       });
     }
 
-    const { validFarmId, validCropId, cropName, growthStage } =
-      await getValidRecordRefs({
-        userId,
-        farmId,
-        cropId,
-      });
+    const {
+      validFarmId,
+      validCropId,
+      cropName,
+      growthStage,
+    } = await getValidRecordRefs({
+      userId,
+      farmId,
+      cropId,
+    });
 
     const farmerContext = await getFarmerContext(userId);
 
@@ -393,7 +441,8 @@ const analyzeLeafImage = async (req, res) => {
       "Please analyze this crop leaf image for possible pest, disease, or nutrient deficiency.";
 
     await pool.query(
-      `INSERT INTO chatbot_messages (user_id, farm_id, crop_id, sender, message)
+      `INSERT INTO chatbot_messages
+       (user_id, farm_id, crop_id, sender, message)
        VALUES ($1, $2, $3, 'user', $4)`,
       [
         userId,
@@ -459,7 +508,8 @@ Important rules:
       "I could not clearly analyze this image. Please upload a clearer crop leaf image.";
 
     await pool.query(
-      `INSERT INTO chatbot_messages (user_id, farm_id, crop_id, sender, message)
+      `INSERT INTO chatbot_messages
+       (user_id, farm_id, crop_id, sender, message)
        VALUES ($1, $2, $3, 'assistant', $4)`,
       [userId, validFarmId, validCropId, reply]
     );
@@ -499,7 +549,10 @@ Important rules:
         ]
       );
     } catch (scanSaveError) {
-      console.error("Could not save disease scan history:", scanSaveError);
+      console.error(
+        "Could not save disease scan history:",
+        scanSaveError
+      );
     }
 
     return res.status(200).json({
